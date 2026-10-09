@@ -1,0 +1,6 @@
+{
+  "name": "EARTHSIM: City Futures Lab",
+  "description": "Environmental Intelligence & Future Simulation Platform for city climate resilience, risk analysis, and intervention modeling.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

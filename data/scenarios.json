@@ -1,0 +1,77 @@
+[
+  {
+    "id": "scen-blr-sponge-2035",
+    "title": "Sponge City Bengaluru 2035",
+    "description": "Ambitious hydrological restoration combining 65% rainwater catchment, 25% canopy expansion, and 60% stormwater rajakaluve canal desilting.",
+    "cityId": "bengaluru",
+    "cityName": "Bengaluru",
+    "targetYear": 2035,
+    "interventions": {
+      "urban_green_cover": 25,
+      "cool_roof": 40,
+      "water_consumption_reduction": 20,
+      "rainwater_harvesting": 65,
+      "drainage_improvement": 60,
+      "emissions_reduction": 25
+    },
+    "resilienceScore": 78,
+    "resilienceGain": 28,
+    "createdAt": "2025-02-15T10:30:00.000Z",
+    "tags": [
+      "Hydrology",
+      "Sponge City",
+      "Flood Resilience",
+      "Water Security"
+    ]
+  },
+  {
+    "id": "scen-del-clean-air-2030",
+    "title": "Clean Sky & Thermal Relief Delhi 2030",
+    "description": "Targeted air pollution abatement and heatwave survival portfolio combining 50% emissions cut, 60% cool roofs, and 20% urban micro-forests.",
+    "cityId": "delhi",
+    "cityName": "Delhi NCR",
+    "targetYear": 2030,
+    "interventions": {
+      "urban_green_cover": 20,
+      "cool_roof": 60,
+      "water_consumption_reduction": 15,
+      "rainwater_harvesting": 35,
+      "drainage_improvement": 30,
+      "emissions_reduction": 50
+    },
+    "resilienceScore": 74,
+    "resilienceGain": 31,
+    "createdAt": "2025-02-18T14:15:00.000Z",
+    "tags": [
+      "Air Quality",
+      "Extreme Heat",
+      "Clean Transit",
+      "Cool Roofs"
+    ]
+  },
+  {
+    "id": "scen-mum-coastal-shield-2040",
+    "title": "Monsoon Shield & Mangrove Buffer Mumbai 2040",
+    "description": "Long-term coastal and riparian defense focusing on Mithi River desilting, 70% drainage upgrade, and 30% nature-based mangrove buffer restoration.",
+    "cityId": "mumbai",
+    "cityName": "Mumbai",
+    "targetYear": 2040,
+    "interventions": {
+      "urban_green_cover": 30,
+      "cool_roof": 35,
+      "water_consumption_reduction": 15,
+      "rainwater_harvesting": 50,
+      "drainage_improvement": 70,
+      "emissions_reduction": 30
+    },
+    "resilienceScore": 76,
+    "resilienceGain": 29,
+    "createdAt": "2025-02-22T09:45:00.000Z",
+    "tags": [
+      "Coastal Defense",
+      "Flash Flood",
+      "Mangroves",
+      "Urban Drainage"
+    ]
+  }
+]
