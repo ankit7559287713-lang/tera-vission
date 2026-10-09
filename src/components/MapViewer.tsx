@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   City,
   CityArea,
@@ -6,6 +6,7 @@ import {
   SimulationResult
 } from '../types/earthsim.ts';
 import { ENVIRONMENTAL_LAYERS } from '../server/data/cities.ts';
+import { api } from '../api/client.ts';
 import {
   Layers,
   Info,
@@ -16,7 +17,12 @@ import {
   Users,
   Building,
   TreeDeciduous,
-  Droplets
+  Droplets,
+  Flame,
+  Download,
+  Radio,
+  RefreshCw,
+  X
 } from 'lucide-react';
 
 interface MapViewerProps {
@@ -43,6 +49,34 @@ export const MapViewer: React.FC<MapViewerProps> = ({
   onChangeViewMode
 }) => {
   const [hoveredAreaId, setHoveredAreaId] = useState<string | null>(null);
+  const [highlightHotspots, setHighlightHotspots] = useState<boolean>(false);
+  const [liveObs, setLiveObs] = useState<any>(null);
+  const [syncingLive, setSyncingLive] = useState<boolean>(false);
+
+  useEffect(() => {
+    api.getLiveObservation(city.id).then(setLiveObs).catch(console.warn);
+  }, [city.id]);
+
+  const handleSyncLive = async () => {
+    setSyncingLive(true);
+    try {
+      const res = await api.ingestLiveStream(city.id);
+      setLiveObs(res.observation);
+    } catch (e) {
+      console.warn('Sync failed:', e);
+    } finally {
+      setSyncingLive(false);
+    }
+  };
+
+  const handleExportGeoJson = () => {
+    const link = document.createElement('a');
+    link.href = `/api/cities/${city.id}/export-geojson`;
+    link.setAttribute('download', `${city.id}-environmental-features.geojson`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const currentLayerMeta = ENVIRONMENTAL_LAYERS.find((l) => l.id === activeLayer) || ENVIRONMENTAL_LAYERS[0];
   const selectedArea = areas.find((a) => a.id === selectedAreaId);
@@ -59,135 +93,195 @@ export const MapViewer: React.FC<MapViewerProps> = ({
       } else if (viewMode === 'intervention') {
         val = areaSim.intervention[activeLayer];
       } else if (viewMode === 'delta') {
-        // Delta: positive improvement = green/cyan; worsening = red
         const delta = areaSim.deltas[activeLayer];
         if (activeLayer === 'green_cover') {
-          // Green cover increasing is good
-          if (delta > 15) return '#059669'; // Emerald-600
-          if (delta > 5) return '#10b981'; // Emerald-500
-          if (delta > 0) return '#34d399'; // Emerald-400
-          return '#64748b';
+          if (delta > 15) return '#15803D'; // Green-700
+          if (delta > 5) return '#22C55E'; // Green-500
+          if (delta > 0) return '#86EFAC'; // Green-300
+          return '#94A3B8';
         } else {
-          // For risk layers, negative delta is improvement
           const reduction = -delta;
-          if (reduction > 25) return '#059669'; // Emerald-600 (massive reduction)
-          if (reduction > 15) return '#10b981'; // Emerald-500
-          if (reduction > 5) return '#34d399'; // Emerald-400
-          if (reduction > 0) return '#6ee7b7'; // Emerald-300
-          return '#64748b'; // No change
+          if (reduction > 20) return '#15803D';
+          if (reduction > 10) return '#22C55E';
+          if (reduction > 3) return '#86EFAC';
+          if (reduction > 0) return '#A7F3D0';
+          return '#94A3B8';
         }
       }
     }
 
     // Standard absolute risk color palette (0-100)
     if (activeLayer === 'green_cover') {
-      // High is good (green), Low is bad (yellow/orange)
-      if (val >= 45) return '#15803d'; // Green-700
-      if (val >= 30) return '#22c55e'; // Green-500
-      if (val >= 20) return '#86efac'; // Green-300
-      if (val >= 10) return '#fde047'; // Yellow-300
-      return '#f97316'; // Orange-500
+      if (val >= 40) return '#15803D';
+      if (val >= 28) return '#22C55E';
+      if (val >= 18) return '#86EFAC';
+      if (val >= 10) return '#FDE047';
+      return '#FB923C';
     }
 
-    // Higher is higher risk
-    if (val >= 85) return '#b91c1c'; // Red-700
-    if (val >= 70) return '#ea580c'; // Orange-600
-    if (val >= 55) return '#eab308'; // Yellow-500
-    if (val >= 40) return '#38bdf8'; // Sky-400
-    return '#0284c7'; // Sky-600
+    // Risk layers (higher is worse)
+    if (val >= 85) return '#991B1B'; // Dark Red
+    if (val >= 70) return '#DC2626'; // Red
+    if (val >= 55) return '#EA580C'; // Orange
+    if (val >= 40) return '#F59E0B'; // Amber
+    if (val >= 25) return '#0284C7'; // Blue
+    return '#0284C7';
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col h-full shadow-lg">
+    <div className="bg-white border border-[#DDE4DA] rounded-xl overflow-hidden flex flex-col h-full shadow-xs">
       {/* Map Header & Controls */}
-      <div className="p-3 sm:p-4 border-b border-slate-800 bg-slate-950/40 flex flex-wrap items-center justify-between gap-3">
+      <div className="p-3 sm:p-4 border-b border-[#DDE4DA] bg-[#F6F7F1] flex flex-wrap items-center justify-between gap-3">
         {/* Layer Selector */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-          <span className="text-xs text-slate-400 font-medium mr-1 flex items-center gap-1">
-            <Layers className="w-3.5 h-3.5" /> Layer:
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          <span className="text-xs text-[#66736A] font-medium mr-1 flex items-center gap-1">
+            <Layers className="w-3.5 h-3.5 text-[#245B43]" /> Layer:
           </span>
-          {ENVIRONMENTAL_LAYERS.map((layer) => (
-            <button
-              key={layer.id}
-              onClick={() => onChangeLayer(layer.id)}
-              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all whitespace-nowrap ${
-                activeLayer === layer.id
-                  ? 'bg-slate-800 text-white border border-slate-700 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-              }`}
-            >
-              {layer.name}
-            </button>
-          ))}
+          {ENVIRONMENTAL_LAYERS.map((layer) => {
+            const isActive = activeLayer === layer.id;
+            return (
+              <button
+                key={layer.id}
+                onClick={() => onChangeLayer(layer.id)}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                  isActive
+                    ? 'bg-[#245B43] text-white shadow-2xs'
+                    : 'bg-white text-[#26332C] border border-[#DDE4DA] hover:bg-[#E7EEE5]'
+                }`}
+              >
+                {layer.name}
+              </button>
+            );
+          })}
         </div>
 
-        {/* View Mode Switcher */}
-        <div className="flex items-center bg-slate-800/80 p-0.5 rounded-lg border border-slate-700/80">
+        {/* View Mode Segmented Switcher & Tools */}
+        <div className="flex items-center gap-2">
+          {/* Mode Switcher */}
+          <div className="flex items-center bg-[#E7EEE5] p-0.5 rounded-lg border border-[#DDE4DA] text-xs">
+            <button
+              onClick={() => onChangeViewMode('baseline')}
+              className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
+                viewMode === 'baseline'
+                  ? 'bg-white text-[#183D30] shadow-2xs font-semibold'
+                  : 'text-[#66736A] hover:text-[#26332C]'
+              }`}
+              title="View Business As Usual (Do Nothing) projection"
+            >
+              Baseline BAU
+            </button>
+            <button
+              onClick={() => onChangeViewMode('intervention')}
+              className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
+                viewMode === 'intervention'
+                  ? 'bg-white text-[#183D30] shadow-2xs font-semibold'
+                  : 'text-[#66736A] hover:text-[#26332C]'
+              }`}
+              title="View scenario with simulated interventions applied"
+            >
+              Modeled Actions
+            </button>
+            <button
+              onClick={() => onChangeViewMode('delta')}
+              className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
+                viewMode === 'delta'
+                  ? 'bg-white text-[#183D30] shadow-2xs font-semibold'
+                  : 'text-[#66736A] hover:text-[#26332C]'
+              }`}
+              title="View net change (Intervention - Baseline)"
+            >
+              Net Relief (Δ)
+            </button>
+          </div>
+
+          {/* Hotspots Toggle */}
           <button
-            onClick={() => onChangeViewMode('baseline')}
-            className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
-              viewMode === 'baseline'
-                ? 'bg-amber-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
+            onClick={() => setHighlightHotspots(!highlightHotspots)}
+            className={`px-2 py-1 text-xs font-medium rounded-lg border transition-colors cursor-pointer flex items-center gap-1 ${
+              highlightHotspots
+                ? 'bg-rose-50 text-rose-700 border-rose-300 font-semibold'
+                : 'bg-white text-[#66736A] border-[#DDE4DA] hover:text-[#26332C]'
             }`}
+            title="Highlight top vulnerability hotspot zones"
           >
-            Baseline (BAU)
+            <AlertTriangle className="w-3 h-3 text-rose-600" />
+            <span className="hidden sm:inline">Critical Hotspots</span>
           </button>
+
+          {/* Export GeoJSON */}
           <button
-            onClick={() => onChangeViewMode('intervention')}
-            className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
-              viewMode === 'intervention'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
+            onClick={handleExportGeoJson}
+            className="p-1.5 bg-white hover:bg-[#F6F7F1] text-[#66736A] hover:text-[#26332C] border border-[#DDE4DA] rounded-lg transition-colors cursor-pointer"
+            title="Export City Boundaries as GeoJSON FeatureCollection"
           >
-            With Interventions
-          </button>
-          <button
-            onClick={() => onChangeViewMode('delta')}
-            className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
-              viewMode === 'delta'
-                ? 'bg-cyan-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Net Gain (Δ)
+            <Download className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
+      {/* Live Observation Banner */}
+      {liveObs && (
+        <div className="bg-[#E7EEE5]/70 border-b border-[#DDE4DA] px-3.5 py-1.5 text-xs text-[#26332C] flex items-center justify-between">
+          <div className="flex items-center gap-3 overflow-x-auto text-[11px]">
+            <span className="flex items-center gap-1.5 font-medium text-[#245B43]">
+              <Radio className="w-3 h-3 text-[#245B43] animate-pulse" />
+              Live Observational Stream ({liveObs.cityName}):
+            </span>
+            <span>
+              Temp: <strong className="text-[#183D30]">{liveObs.weather?.temperatureC}°C</strong>
+            </span>
+            <span>
+              Humidity: <strong className="text-[#183D30]">{liveObs.weather?.relativeHumidityPercent}%</strong>
+            </span>
+            <span>
+              PM2.5: <strong className="text-[#183D30]">{liveObs.airQuality?.pm25} µg/m³</strong> ({liveObs.airQuality?.aqiCategory})
+            </span>
+          </div>
+
+          <button
+            onClick={handleSyncLive}
+            disabled={syncingLive}
+            className="text-[10px] text-[#66736A] hover:text-[#245B43] flex items-center gap-1 transition-colors cursor-pointer"
+          >
+            <RefreshCw className={`w-3 h-3 ${syncingLive ? 'animate-spin' : ''}`} />
+            <span>Sync Station Feeds</span>
+          </button>
+        </div>
+      )}
+
       {/* Main Map Canvas and Inspector Split */}
-      <div className="relative flex-1 min-h-[380px] bg-slate-950 flex flex-col md:flex-row">
+      <div className="relative flex-1 min-h-[380px] bg-[#FBFBF9] flex flex-col md:flex-row">
         {/* SVG Geospatial Canvas */}
         <div className="relative flex-1 h-full min-h-[340px] flex items-center justify-center p-2 sm:p-4 overflow-hidden">
           {/* Subtle Grid Backdrop */}
           <div
-            className="absolute inset-0 opacity-10 pointer-events-none"
+            className="absolute inset-0 opacity-40 pointer-events-none"
             style={{
-              backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)',
+              backgroundImage: 'radial-gradient(#CBD5E1 1px, transparent 1px)',
               backgroundSize: '24px 24px'
             }}
           />
 
           <svg
             viewBox={city.svgViewBox || '0 0 600 500'}
-            className="w-full h-full max-h-[500px] object-contain transition-all duration-300 drop-shadow-md select-none"
+            className="w-full h-full max-h-[500px] object-contain transition-all duration-300 select-none"
           >
             {/* Compass Rose */}
-            <g transform="translate(540, 40)" className="opacity-40">
-              <circle r="16" fill="#1e293b" stroke="#475569" strokeWidth="1" />
-              <path d="M 0,-12 L 3,-2 L 0,0 L -3,-2 Z" fill="#ef4444" />
-              <path d="M 0,12 L 3,2 L 0,0 L -3,2 Z" fill="#94a3b8" />
-              <text x="0" y="-14" textAnchor="middle" fontSize="9" fill="#94a3b8" fontWeight="bold">N</text>
+            <g transform="translate(540, 40)" className="opacity-60">
+              <circle r="16" fill="#FFFFFF" stroke="#DDE4DA" strokeWidth="1.5" />
+              <path d="M 0,-12 L 3,-2 L 0,0 L -3,-2 Z" fill="#DC2626" />
+              <path d="M 0,12 L 3,2 L 0,0 L -3,2 Z" fill="#64748B" />
+              <text x="0" y="-14" textAnchor="middle" fontSize="9" fill="#183D30" fontWeight="bold">N</text>
             </g>
 
             {/* City Ward Boundaries */}
             {areas.map((area) => {
               const isSelected = selectedAreaId === area.id;
               const isHovered = hoveredAreaId === area.id;
-              const fillColor = getAreaFillColor(area);
+              const isHotspot = area.vulnerabilityRank <= 3 || (area.baselineIndicators.extreme_heat >= 75 && area.baselineIndicators.flood_exposure >= 70);
+              const fillColor = highlightHotspots && isHotspot ? '#991B1B' : getAreaFillColor(area);
 
-              // Calculate centroid label coordinates (simple parse from polygon)
+              // Calculate centroid label coordinates
               const coords = area.svgPolygon
                 .replace(/[MLZ]/g, '')
                 .trim()
@@ -202,9 +296,9 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                   <path
                     d={area.svgPolygon}
                     fill={fillColor}
-                    fillOpacity={isSelected ? 0.95 : isHovered ? 0.85 : 0.65}
-                    stroke={isSelected ? '#38bdf8' : isHovered ? '#ffffff' : '#334155'}
-                    strokeWidth={isSelected ? 3 : isHovered ? 2 : 1}
+                    fillOpacity={isSelected ? 0.95 : isHovered ? 0.90 : 0.82}
+                    stroke={isSelected ? '#183D30' : highlightHotspots && isHotspot ? '#DC2626' : isHovered ? '#183D30' : '#FFFFFF'}
+                    strokeWidth={isSelected ? 3.5 : isHovered ? 2.5 : 1.5}
                     className="cursor-pointer transition-all duration-150"
                     onClick={() => onSelectArea(isSelected ? null : area.id)}
                     onMouseEnter={() => setHoveredAreaId(area.id)}
@@ -216,10 +310,16 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                     x={avgX}
                     y={avgY - 4}
                     textAnchor="middle"
-                    fill="#ffffff"
+                    fill="#183D30"
                     fontSize="11"
-                    fontWeight="600"
-                    className="pointer-events-none drop-shadow"
+                    fontWeight="700"
+                    className="pointer-events-none"
+                    style={{
+                      paintOrder: 'stroke',
+                      stroke: '#FFFFFF',
+                      strokeWidth: '3px',
+                      strokeLinejoin: 'round'
+                    }}
                   >
                     {area.name.split(' ')[0]}
                   </text>
@@ -227,9 +327,16 @@ export const MapViewer: React.FC<MapViewerProps> = ({
                     x={avgX}
                     y={avgY + 10}
                     textAnchor="middle"
-                    fill="#cbd5e1"
+                    fill="#26332C"
                     fontSize="9.5"
-                    className="pointer-events-none opacity-85"
+                    fontWeight="600"
+                    className="pointer-events-none"
+                    style={{
+                      paintOrder: 'stroke',
+                      stroke: '#FFFFFF',
+                      strokeWidth: '2.5px',
+                      strokeLinejoin: 'round'
+                    }}
                   >
                     {viewMode === 'delta'
                       ? simulation?.areaResults.find((ar) => ar.areaId === area.id)
@@ -243,143 +350,171 @@ export const MapViewer: React.FC<MapViewerProps> = ({
           </svg>
 
           {/* Map Legend Overlay */}
-          <div className="absolute bottom-3 left-3 bg-slate-900/90 backdrop-blur-sm border border-slate-800 rounded-lg p-2.5 text-xs text-slate-300 shadow-md">
-            <div className="font-semibold text-slate-200 mb-1 flex items-center justify-between gap-2">
+          <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-sm border border-[#DDE4DA] rounded-lg p-2.5 text-xs text-[#26332C] shadow-xs">
+            <div className="font-semibold text-[#183D30] mb-1 flex items-center justify-between gap-2">
               <span>{currentLayerMeta.name}</span>
-              <span className="text-[10px] text-slate-400">({currentLayerMeta.unit})</span>
+              <span className="text-[10px] text-[#66736A]">({currentLayerMeta.unit})</span>
             </div>
             {viewMode === 'delta' ? (
               <div className="flex items-center gap-1 text-[11px]">
-                <span className="w-3 h-3 rounded-sm bg-emerald-600 inline-block" />
-                <span>Major Gain</span>
-                <span className="w-3 h-3 rounded-sm bg-emerald-400 inline-block ml-1" />
-                <span>Moderate Gain</span>
-                <span className="w-3 h-3 rounded-sm bg-slate-500 inline-block ml-1" />
-                <span>Neutral</span>
+                <span className="w-3 h-3 rounded-xs bg-emerald-700 inline-block" />
+                <span>High Relief</span>
+                <span className="w-3 h-3 rounded-xs bg-emerald-500 inline-block ml-1" />
+                <span>Moderate</span>
+                <span className="w-3 h-3 rounded-xs bg-slate-400 inline-block ml-1" />
+                <span>No Change</span>
               </div>
             ) : (
               <div className="flex items-center gap-1.5 text-[11px]">
-                <span className="text-slate-400">Low Risk</span>
+                <span className="text-[#66736A]">Low Risk</span>
                 <div className="flex h-2.5 w-24 rounded overflow-hidden">
                   <div className="flex-1 bg-sky-600" />
-                  <div className="flex-1 bg-yellow-500" />
+                  <div className="flex-1 bg-amber-500" />
                   <div className="flex-1 bg-orange-600" />
                   <div className="flex-1 bg-red-700" />
                 </div>
-                <span className="text-slate-400">Extreme</span>
+                <span className="text-[#66736A]">High Risk</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Selected Area Inspector Drawer */}
-        {selectedArea ? (
-          <div className="w-full md:w-80 bg-slate-900/95 border-t md:border-t-0 md:border-l border-slate-800 p-4 flex flex-col justify-between overflow-y-auto max-h-[500px]">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded">
-                  Ward #{selectedArea.vulnerabilityRank} Vulnerability
-                </span>
+        {/* Selected Ward Inspection Drawer / Sidebar */}
+        {selectedArea && (
+          <div className="w-full md:w-80 bg-white border-t md:border-t-0 md:border-l border-[#DDE4DA] p-4 flex flex-col justify-between overflow-y-auto max-h-[500px]">
+            <div className="space-y-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="text-[10px] font-mono uppercase font-bold text-[#245B43] bg-[#E7EEE5] px-1.5 py-0.5 rounded">
+                    {selectedArea.zone}
+                  </span>
+                  <h3 className="text-base font-bold text-[#183D30] mt-1">{selectedArea.name}</h3>
+                  <p className="text-xs text-[#66736A]">Ward ID: {selectedArea.id}</p>
+                </div>
                 <button
                   onClick={() => onSelectArea(null)}
-                  className="text-xs text-slate-400 hover:text-slate-200"
+                  className="text-[#66736A] hover:text-[#26332C] p-1 cursor-pointer"
+                  title="Close ward inspector"
                 >
-                  Close
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <h4 className="text-base font-bold text-white mb-0.5">{selectedArea.name}</h4>
-              <p className="text-xs text-slate-400 mb-4">{selectedArea.zone} · {city.name}</p>
+              {/* Ward Population & Area Metrics */}
+              <div className="grid grid-cols-2 gap-2 bg-[#F6F7F1] p-2.5 rounded-lg border border-[#DDE4DA] text-xs">
+                <div>
+                  <div className="text-[10px] text-[#66736A] flex items-center gap-1">
+                    <Users className="w-3 h-3 text-[#245B43]" /> Projected Pop
+                  </div>
+                  <div className="font-bold text-[#183D30] text-sm">
+                    {selectedAreaSim?.population?.projectedPopulation?.toLocaleString() || selectedArea.populationEstimate.toLocaleString()}
+                  </div>
+                  <div className="text-[9px] text-[#66736A]">
+                    {selectedAreaSim?.population ? `${simulation?.targetYear} Projection` : 'Census baseline'}
+                  </div>
+                </div>
 
-              {/* Area Traits */}
-              <div className="grid grid-cols-2 gap-2 text-xs mb-4">
-                <div className="bg-slate-800/60 border border-slate-700/60 rounded-lg p-2">
-                  <div className="text-slate-400 flex items-center gap-1 mb-0.5">
-                    <Users className="w-3 h-3 text-slate-400" /> Pop.
+                <div>
+                  <div className="text-[10px] text-[#66736A] flex items-center gap-1">
+                    <Building className="w-3 h-3 text-[#245B43]" /> Ward Area
                   </div>
-                  <div className="font-semibold text-slate-100">
-                    {(selectedArea.populationEstimate / 1000).toFixed(0)}k est.
-                  </div>
-                </div>
-                <div className="bg-slate-800/60 border border-slate-700/60 rounded-lg p-2">
-                  <div className="text-slate-400 flex items-center gap-1 mb-0.5">
-                    <Building className="w-3 h-3 text-slate-400" /> Impervious
-                  </div>
-                  <div className="font-semibold text-slate-100">
-                    {selectedArea.characteristics.imperviousSurfacePercent}%
-                  </div>
-                </div>
-                <div className="bg-slate-800/60 border border-slate-700/60 rounded-lg p-2">
-                  <div className="text-slate-400 flex items-center gap-1 mb-0.5">
-                    <TreeDeciduous className="w-3 h-3 text-emerald-400" /> Canopy
-                  </div>
-                  <div className="font-semibold text-emerald-300">
-                    {selectedArea.characteristics.canopyCoverPercent}% cover
-                  </div>
-                </div>
-                <div className="bg-slate-800/60 border border-slate-700/60 rounded-lg p-2">
-                  <div className="text-slate-400 flex items-center gap-1 mb-0.5">
-                    <Droplets className="w-3 h-3 text-cyan-400" /> Drainage
-                  </div>
-                  <div className="font-semibold text-cyan-300">
-                    {selectedArea.characteristics.floodDrainageCapacityPercent}% capacity
+                  <div className="font-bold text-[#183D30] text-sm">{selectedArea.areaKm2} km²</div>
+                  <div className="text-[9px] text-[#66736A]">
+                    {selectedAreaSim?.population ? `${selectedAreaSim.population.densityPerKm2.toLocaleString()}/km²` : 'Urban density'}
                   </div>
                 </div>
               </div>
 
-              {/* Ward Level Indicators: Baseline vs Intervention */}
-              <div className="space-y-2 mb-4">
-                <div className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                  Environmental Indicators
-                </div>
+              {/* Active Layer Risk Comparison */}
+              {selectedAreaSim && (
+                <div className="space-y-2 border-t border-[#DDE4DA] pt-3">
+                  <div className="text-xs font-semibold text-[#183D30] flex items-center justify-between">
+                    <span>{currentLayerMeta.name}</span>
+                    <span className="text-[10px] text-[#66736A]">Scale 0–100</span>
+                  </div>
 
-                {ENVIRONMENTAL_LAYERS.map((layer) => {
-                  const baseVal = selectedAreaSim?.baseline[layer.id] ?? selectedArea.baselineIndicators[layer.id];
-                  const intVal = selectedAreaSim?.intervention[layer.id] ?? baseVal;
-                  const delta = intVal - baseVal;
-                  const isGood = layer.id === 'green_cover' ? delta > 0 : delta < 0;
-
-                  return (
-                    <div
-                      key={layer.id}
-                      className="bg-slate-800/40 border border-slate-700/40 rounded-lg p-2 flex items-center justify-between text-xs"
-                    >
-                      <div>
-                        <div className="font-medium text-slate-200">{layer.name}</div>
-                        <div className="text-[11px] text-slate-400">
-                          Baseline: <span className="text-slate-300 font-mono">{baseVal}</span> → Modeled:{' '}
-                          <span className="text-slate-100 font-mono font-bold">{intVal}</span>
-                        </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="bg-[#F6F7F1] p-2 rounded-lg border border-[#DDE4DA]">
+                      <div className="text-[10px] text-[#66736A]">Baseline (BAU)</div>
+                      <div className="text-base font-bold text-[#EA580C]">
+                        {selectedAreaSim.baseline[activeLayer]}
                       </div>
-
-                      {delta !== 0 && (
-                        <div
-                          className={`font-mono font-semibold flex items-center gap-0.5 text-xs ${
-                            isGood ? 'text-emerald-400' : 'text-rose-400'
-                          }`}
-                        >
-                          {delta > 0 ? '+' : ''}{delta}
-                        </div>
-                      )}
                     </div>
-                  );
-                })}
+                    <div className="bg-[#E7EEE5] p-2 rounded-lg border border-[#DDE4DA]">
+                      <div className="text-[10px] text-[#245B43] font-medium">With Interventions</div>
+                      <div className="text-base font-bold text-[#245B43]">
+                        {selectedAreaSim.intervention[activeLayer]}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs px-1">
+                    <span className="text-[#66736A]">Net Change (Δ):</span>
+                    <span
+                      className={`font-bold font-mono ${
+                        selectedAreaSim.deltas[activeLayer] < 0 && activeLayer !== 'green_cover'
+                          ? 'text-emerald-700'
+                          : selectedAreaSim.deltas[activeLayer] > 0 && activeLayer === 'green_cover'
+                          ? 'text-emerald-700'
+                          : 'text-[#66736A]'
+                      }`}
+                    >
+                      {selectedAreaSim.deltas[activeLayer] > 0 ? '+' : ''}
+                      {selectedAreaSim.deltas[activeLayer]} pts
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Physical Environmental Characteristics */}
+              <div className="space-y-1.5 border-t border-[#DDE4DA] pt-3 text-xs">
+                <div className="text-[11px] font-semibold text-[#183D30] mb-1">
+                  Physical Vulnerability Profile:
+                </div>
+
+                <div className="flex items-center justify-between text-[#66736A]">
+                  <span className="flex items-center gap-1.5">
+                    <TreeDeciduous className="w-3.5 h-3.5 text-emerald-600" /> Tree Canopy Cover
+                  </span>
+                  <span className="font-mono font-medium text-[#183D30]">
+                    {selectedArea.characteristics.canopyCoverPercent}%
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-[#66736A]">
+                  <span className="flex items-center gap-1.5">
+                    <Building className="w-3.5 h-3.5 text-slate-500" /> Impervious Surface
+                  </span>
+                  <span className="font-mono font-medium text-[#183D30]">
+                    {selectedArea.characteristics.imperviousSurfacePercent}%
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-[#66736A]">
+                  <span className="flex items-center gap-1.5">
+                    <Droplets className="w-3.5 h-3.5 text-sky-600" /> Storm Drainage Capacity
+                  </span>
+                  <span className="font-mono font-medium text-[#183D30]">
+                    {selectedArea.characteristics.floodDrainageCapacityPercent}%
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-[#66736A]">
+                  <span className="flex items-center gap-1.5">
+                    <Flame className="w-3.5 h-3.5 text-amber-600" /> Groundwater Depth
+                  </span>
+                  <span className="font-mono font-medium text-[#183D30]">
+                    {selectedArea.characteristics.groundwaterDepthMeters} mbgl
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Scientific Provenance note */}
-            <div className="text-[11px] text-slate-500 border-t border-slate-800 pt-2 flex items-center gap-1">
-              <Info className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>Calibrated via Landsat-8 TIRS &amp; Sentinel-2 MSI data.</span>
+            <div className="pt-3 border-t border-[#DDE4DA] mt-3">
+              <div className="text-[10px] text-[#66736A] italic">
+                Source: ISRO Bhuvan LULC, CGWB NAQUIM &amp; Census 2011 baseline.
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="hidden md:flex w-72 bg-slate-900/60 border-l border-slate-800 p-4 flex-col justify-center items-center text-center text-slate-400 text-xs">
-            <Info className="w-8 h-8 text-slate-600 mb-2" />
-            <p className="font-medium text-slate-300 mb-1">Select Any Ward to Inspect</p>
-            <p className="text-[11px] text-slate-500">
-              Click on any geographic zone on the map to inspect micro-climate indicators, population density, and localized modeled interventions.
-            </p>
           </div>
         )}
       </div>

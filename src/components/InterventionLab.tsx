@@ -31,6 +31,7 @@ export const InterventionLab: React.FC<InterventionLabProps> = ({
   const [budget, setBudget] = useState<number>(35);
   const [priority, setPriority] = useState<'balanced' | EnvironmentalLayerId>('balanced');
   const [result, setResult] = useState<InterventionOptimizationResult | null>(null);
+  const [paretoFrontier, setParetoFrontier] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [applied, setApplied] = useState<boolean>(false);
 
@@ -38,12 +39,16 @@ export const InterventionLab: React.FC<InterventionLabProps> = ({
     setLoading(true);
     setApplied(false);
     try {
-      const data = await api.evaluateInterventions({
-        cityId,
-        budgetMillions: b,
-        targetPriority: p
-      });
-      setResult(data);
+      const [optData, frontierData] = await Promise.all([
+        api.evaluateInterventions({
+          cityId,
+          budgetMillions: b,
+          targetPriority: p
+        }),
+        api.getParetoFrontier(cityId, p).catch(() => null)
+      ]);
+      setResult(optData);
+      if (frontierData) setParetoFrontier(frontierData);
     } catch (err) {
       console.error('Optimization error:', err);
     } finally {
@@ -65,45 +70,47 @@ export const InterventionLab: React.FC<InterventionLabProps> = ({
   return (
     <div className="space-y-6">
       {/* Optimization Controls */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 sm:p-6 shadow-lg">
+      <div className="bg-white border border-[#DDE4DA] rounded-xl p-5 sm:p-6 shadow-xs">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-              <Cpu className="w-5 h-5 text-emerald-400" />
+            <h2 className="text-lg sm:text-xl font-bold text-[#183D30] flex items-center gap-2">
+              <Cpu className="w-5 h-5 text-[#245B43]" />
               Budget-Constrained Intervention Optimizer
             </h2>
-            <p className="text-xs text-slate-400">
-              Evaluates cost-effectiveness ratios (Impact per $1M) using an explainable knapsack ranking algorithm for {cityName}.
+            <p className="text-xs text-[#66736A] mt-0.5">
+              Evaluates marginal cost-effectiveness ratios (Impact per $1M / ₹8.3 Cr) using an explainable knapsack ranking algorithm for {cityName}.
             </p>
           </div>
 
           {result && (
-            <div className="flex items-center gap-3 bg-slate-950 border border-slate-800 px-4 py-2 rounded-xl">
+            <div className="flex items-center gap-3 bg-[#F6F7F1] border border-[#DDE4DA] px-4 py-2 rounded-xl">
               <div className="text-right">
-                <div className="text-[10px] text-slate-400 uppercase font-mono">Resilience Gain</div>
-                <div className="text-lg font-mono font-bold text-emerald-400">
+                <div className="text-[10px] text-[#66736A] uppercase font-mono">Resilience Gain</div>
+                <div className="text-lg font-mono font-bold text-emerald-800">
                   +{result.projectedResilienceGain} pts
                 </div>
               </div>
-              <div className="border-l border-slate-800 pl-3 text-right">
-                <div className="text-[10px] text-slate-400 uppercase font-mono">Budget Used</div>
-                <div className="text-lg font-mono font-bold text-cyan-400">
-                  ${result.totalCostMillions}M <span className="text-xs text-slate-500 font-normal">/ ${budget}M</span>
+              <div className="border-l border-[#DDE4DA] pl-3 text-right">
+                <div className="text-[10px] text-[#66736A] uppercase font-mono">Budget Allocated</div>
+                <div className="text-lg font-mono font-bold text-[#183D30]">
+                  ${result.totalCostMillions}M <span className="text-xs text-[#66736A] font-normal">/ ${budget}M</span>
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Sliders and Priorities */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-800">
-          {/* Budget Input */}
+        {/* Sliders and Target Selection */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-[#F6F7F1] p-4 rounded-xl border border-[#DDE4DA]">
+          {/* Budget Slider */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-200">
-              <span className="flex items-center gap-1.5">
-                <DollarSign className="w-4 h-4 text-emerald-400" /> Municipal Capital Budget
+            <div className="flex justify-between items-center text-xs">
+              <label className="font-bold text-[#183D30] flex items-center gap-1.5">
+                <DollarSign className="w-4 h-4 text-[#245B43]" /> Municipal Capital Budget Ceiling:
+              </label>
+              <span className="font-mono text-base font-bold text-[#245B43]">
+                ${budget} Million USD
               </span>
-              <span className="font-mono text-emerald-400 text-sm font-bold">${budget} Million USD</span>
             </div>
             <input
               type="range"
@@ -112,39 +119,39 @@ export const InterventionLab: React.FC<InterventionLabProps> = ({
               step="5"
               value={budget}
               onChange={(e) => setBudget(Number(e.target.value))}
-              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+              className="w-full h-2 bg-[#DDE4DA] rounded-lg appearance-none cursor-pointer accent-[#245B43]"
             />
-            <div className="flex justify-between text-[10px] text-slate-500">
+            <div className="flex justify-between text-[10px] text-[#66736A]">
               <span>$5M (Pilot Scale)</span>
-              <span>$50M (Citywide Capital Works)</span>
-              <span>$100M (Aggressive Transformation)</span>
+              <span>$50M (Major Municipal Scheme)</span>
+              <span>$100M (Comprehensive Transformation)</span>
             </div>
           </div>
 
-          {/* Priority Objective */}
+          {/* Goal Priority Selector */}
           <div className="space-y-2">
-            <div className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
-              <Shield className="w-4 h-4 text-cyan-400" /> Target Strategic Priority
-            </div>
-            <div className="grid grid-cols-3 sm:grid-cols-3 gap-1.5">
+            <label className="font-bold text-xs text-[#183D30] block">
+              Strategic Climate Resilience Priority:
+            </label>
+            <div className="grid grid-cols-3 gap-1.5 text-xs">
               {[
-                { id: 'balanced', label: 'Balanced' },
-                { id: 'extreme_heat', label: 'Cool Heat' },
-                { id: 'flood_exposure', label: 'Flood Shield' },
-                { id: 'water_stress', label: 'Water Security' },
-                { id: 'green_cover', label: 'Green Canopy' },
-                { id: 'air_pollution', label: 'Clean Air' }
-              ].map((opt) => (
+                { id: 'balanced', label: 'Balanced (All Risks)' },
+                { id: 'extreme_heat', label: 'Cooling & Heat' },
+                { id: 'flood_exposure', label: 'Flood & Runoff' },
+                { id: 'water_stress', label: 'Aquifer Recharge' },
+                { id: 'green_cover', label: 'Biodiversity & Green' },
+                { id: 'air_pollution', label: 'Clean Air / PM2.5' }
+              ].map((p) => (
                 <button
-                  key={opt.id}
-                  onClick={() => setPriority(opt.id as any)}
-                  className={`py-1.5 px-2 text-xs font-medium rounded-lg transition-all ${
-                    priority === opt.id
-                      ? 'bg-emerald-600 text-white shadow-sm'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  key={p.id}
+                  onClick={() => setPriority(p.id as any)}
+                  className={`px-2.5 py-1.5 rounded-lg border font-medium text-xs transition-all cursor-pointer ${
+                    priority === p.id
+                      ? 'bg-[#245B43] text-white border-[#183D30] shadow-xs'
+                      : 'bg-white text-[#26332C] border-[#DDE4DA] hover:bg-[#E7EEE5]'
                   }`}
                 >
-                  {opt.label}
+                  {p.label}
                 </button>
               ))}
             </div>
@@ -152,90 +159,110 @@ export const InterventionLab: React.FC<InterventionLabProps> = ({
         </div>
       </div>
 
-      {/* Ranked Interventions Portfolio */}
+      {/* Ranked Intervention Portfolio */}
       {result && (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
-          <div className="p-4 border-b border-slate-800 bg-slate-950/40 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-bold text-white">Recommended Intervention Portfolio</h3>
-              <p className="text-xs text-slate-400">{result.optimizationRationale}</p>
-            </div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-[#183D30] uppercase tracking-wide flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#245B43]" />
+              Ranked Cost-Effective Portfolio ({result.rankedInterventions.length} Options Evaluated)
+            </h3>
 
             <button
               onClick={handleApply}
-              disabled={applied}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              disabled={applied || loading}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer ${
                 applied
-                  ? 'bg-slate-800 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md'
+                  ? 'bg-emerald-700 text-white'
+                  : 'bg-[#245B43] hover:bg-[#183D30] text-white'
               }`}
             >
               {applied ? (
                 <>
-                  <CheckCircle className="w-4 h-4 text-emerald-400" />
-                  <span>Portfolio Applied to Simulation</span>
+                  <CheckCircle className="w-4 h-4" />
+                  <span>Applied to Active Simulation</span>
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4" />
-                  <span>Apply Portfolio to Simulation Lab</span>
-                  <ArrowRight className="w-3.5 h-3.5 ml-0.5" />
+                  <span>Apply Portfolio to Simulation</span>
+                  <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
           </div>
 
-          <div className="divide-y divide-slate-800">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {result.rankedInterventions.map((item) => (
               <div
                 key={item.interventionId}
-                className="p-4 hover:bg-slate-800/30 transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                className="bg-white border border-[#DDE4DA] rounded-xl p-4 space-y-3 hover:border-[#477F78] transition-all shadow-xs"
               >
-                <div className="flex items-start gap-3 flex-1">
-                  <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-mono font-bold text-emerald-400 flex-shrink-0">
-                    #{item.rank}
-                  </div>
+                <div className="flex items-start justify-between">
                   <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-slate-100 text-sm">{item.name}</span>
-                      <span className="text-[11px] font-mono text-cyan-300 bg-cyan-950/60 border border-cyan-800/60 px-2 py-0.5 rounded">
-                        {item.costEffectivenessRatio}x ROI ratio
-                      </span>
+                    <span className="text-[10px] font-mono font-bold text-[#245B43] bg-[#E7EEE5] px-1.5 py-0.5 rounded">
+                      Rank #{item.rank} · Priority
+                    </span>
+                    <h4 className="text-sm font-bold text-[#183D30] mt-1">{item.name}</h4>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] text-[#66736A]">Recommended</div>
+                    <div className="text-sm font-bold font-mono text-[#245B43]">
+                      {item.recommendedValue}%
                     </div>
-                    <p className="text-xs text-slate-400 mt-0.5">{item.justification}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-6 self-end sm:self-auto text-xs font-mono">
-                  <div className="text-right">
-                    <div className="text-[10px] text-slate-500 uppercase">Recommended</div>
-                    <div className="font-bold text-white text-sm">
-                      {item.recommendedValue}
-                      {item.name.includes('%') ? '' : '%'}
-                    </div>
+                <p className="text-xs text-[#66736A] leading-relaxed">
+                  {item.justification}
+                </p>
+
+                <div className="pt-2 border-t border-[#DDE4DA] grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-[10px] text-[#66736A] block">Capex Outlay:</span>
+                    <span className="font-mono font-bold text-[#183D30]">
+                      ${item.estimatedCostMillions}M
+                    </span>
                   </div>
                   <div className="text-right">
-                    <div className="text-[10px] text-slate-500 uppercase">Allocated Cost</div>
-                    <div className="font-bold text-emerald-400 text-sm">
-                      ${item.estimatedCostMillions}M
-                    </div>
+                    <span className="text-[10px] text-[#66736A] block">Impact / $1M:</span>
+                    <span className="font-mono font-bold text-emerald-800">
+                      {item.costEffectivenessRatio} pts/$M
+                    </span>
                   </div>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Rationale and Methodology Note */}
-          <div className="p-4 bg-slate-950/60 border-t border-slate-800 text-[11px] text-slate-400 space-y-1">
-            <div className="font-semibold text-slate-300 flex items-center gap-1.5">
-              <Info className="w-3.5 h-3.5 text-slate-400" />
-              Optimization Methodology &amp; Limitations
+          {/* Pareto Frontier Insights */}
+          {paretoFrontier && (
+            <div className="bg-white border border-[#DDE4DA] rounded-xl p-5 shadow-xs">
+              <h4 className="text-xs font-bold text-[#183D30] uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <TrendingUp className="w-4 h-4 text-[#245B43]" />
+                Marginal Returns Curve (Pareto Capital Frontier)
+              </h4>
+              <p className="text-xs text-[#66736A] mb-4">
+                Demonstrates how overall city resilience scales as public investment expands from $10M to $100M:
+              </p>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                {paretoFrontier.frontierSteps.map((step: any) => (
+                  <div
+                    key={step.budgetMillions}
+                    className="bg-[#F6F7F1] border border-[#DDE4DA] rounded-lg p-3"
+                  >
+                    <div className="text-xs text-[#66736A]">${step.budgetMillions}M Budget</div>
+                    <div className="text-base font-mono font-bold text-[#183D30] mt-0.5">
+                      +{step.projectedResilienceGain} pts
+                    </div>
+                    <div className="text-[10px] text-[#245B43] mt-1 font-medium">
+                      Efficiency: {step.marginalEfficiency}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <p>
-              Algorithm ranks interventions by marginal benefit ratio (Score / Cost ratio) subject to the user's budget ceiling.
-              Unit costs are derived from benchmark municipal climate adaptation project tenders in Indian metropolitan zones (2024-2025).
-            </p>
-          </div>
+          )}
         </div>
       )}
     </div>

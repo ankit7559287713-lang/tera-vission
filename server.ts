@@ -1,5 +1,5 @@
 /**
- * EARTHSIM: City Futures Lab - Main Server Entry Point
+ * TETRA VISION - Main Server Entry Point
  *
  * Full-stack Express server with integrated Vite middleware in development
  * and production static serving on port 3000.
@@ -74,7 +74,7 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🌍 EARTHSIM: City Futures Lab server running at http://localhost:${PORT}`);
+    console.log(`🌍 TETRA VISION server running at http://localhost:${PORT}`);
     console.log(`📊 Mode: ${isProd ? 'Production' : 'Development'} (Vite SPA + Express REST API)`);
   });
 }

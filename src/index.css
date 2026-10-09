@@ -1,1 +1,40 @@
 @import "tailwindcss";
+
+:root {
+  --color-page-bg: #F6F7F1;
+  --color-surface: #FFFFFF;
+  --color-primary: #245B43;
+  --color-forest: #183D30;
+  --color-sage: #E7EEE5;
+  --color-teal: #477F78;
+  --color-text-main: #26332C;
+  --color-text-muted: #66736A;
+  --color-border: #DDE4DA;
+}
+
+body {
+  background-color: #F6F7F1;
+  color: #26332C;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar styling for light theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #E7EEE5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #B8C7B5;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #477F78;
+}

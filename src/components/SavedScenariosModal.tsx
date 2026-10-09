@@ -58,56 +58,52 @@ export const SavedScenarios: React.FC<SavedScenariosProps> = ({
     if (!currentSimulation || !newTitle.trim()) return;
 
     try {
-      const tagsArray = newTags
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean);
-
-      const saved = await api.saveScenario({
+      await api.saveScenario({
         title: newTitle.trim(),
-        description: newDesc.trim() || 'Custom city futures scenario',
+        description: newDesc.trim() || `Simulated policy portfolio for ${currentSimulation.cityName} (${currentSimulation.targetYear})`,
         cityId: currentSimulation.cityId,
         cityName: currentSimulation.cityName,
         targetYear: currentSimulation.targetYear,
         interventions: currentSimulation.interventions,
         resilienceScore: currentSimulation.overallResilienceScore.intervention,
         resilienceGain: currentSimulation.overallResilienceScore.gain,
-        tags: tagsArray
+        tags: newTags.split(',').map((t) => t.trim()).filter(Boolean)
       });
 
-      setScenarios((prev) => [saved, ...prev]);
       setNewTitle('');
       setNewDesc('');
       onCloseSaveDialog();
+      await loadScenarios();
     } catch (err) {
-      console.error('Error saving scenario:', err);
+      console.error('Failed saving scenario:', err);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this saved scenario?')) return;
     try {
       await api.deleteScenario(id);
       setScenarios((prev) => prev.filter((s) => s.id !== id));
     } catch (err) {
-      console.error('Error deleting scenario:', err);
+      console.error('Failed deleting scenario:', err);
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Save Scenario Modal Dialog */}
-      {showSaveDialog && currentSimulation && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Bookmark className="w-5 h-5 text-emerald-400" />
-                Save Active Simulation Future
-              </h3>
+      {/* Save Modal Dialog Overlay */}
+      {showSaveDialog && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-[#DDE4DA] rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#DDE4DA]">
+              <div className="flex items-center gap-2">
+                <Bookmark className="w-5 h-5 text-[#245B43]" />
+                <h3 className="font-bold text-base text-[#183D30]">
+                  Save Future Scenario
+                </h3>
+              </div>
               <button
                 onClick={onCloseSaveDialog}
-                className="text-slate-400 hover:text-white p-1 rounded"
+                className="text-[#66736A] hover:text-[#26332C] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -115,58 +111,64 @@ export const SavedScenarios: React.FC<SavedScenariosProps> = ({
 
             <form onSubmit={handleSaveCurrent} className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Scenario Title</label>
+                <label className="block text-[#183D30] font-semibold mb-1">
+                  Scenario Title *
+                </label>
                 <input
                   type="text"
                   required
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="e.g. Comprehensive Sponge & Canopy Blitz 2035"
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 text-slate-100 p-2.5 rounded-lg focus:outline-none"
+                  placeholder="e.g., Koramangala 2035 Sponge City Plan"
+                  className="w-full bg-[#F6F7F1] border border-[#DDE4DA] focus:border-[#245B43] rounded-lg p-2.5 text-[#26332C] focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Description</label>
+                <label className="block text-[#183D30] font-semibold mb-1">
+                  Policy Summary / Notes
+                </label>
                 <textarea
                   rows={3}
                   value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
-                  placeholder="Summary of core policy interventions and expected yields..."
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 text-slate-100 p-2.5 rounded-lg focus:outline-none"
+                  placeholder="Key assumptions, capital outlays, and ward priorities..."
+                  className="w-full bg-[#F6F7F1] border border-[#DDE4DA] focus:border-[#245B43] rounded-lg p-2.5 text-[#26332C] focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Tags (comma-separated)</label>
+                <label className="block text-[#183D30] font-semibold mb-1">
+                  Tags (Comma separated)
+                </label>
                 <input
                   type="text"
                   value={newTags}
                   onChange={(e) => setNewTags(e.target.value)}
-                  placeholder="Flood, Cool Roofs, High Priority"
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 text-slate-100 p-2.5 rounded-lg focus:outline-none"
+                  className="w-full bg-[#F6F7F1] border border-[#DDE4DA] focus:border-[#245B43] rounded-lg p-2.5 text-[#26332C] focus:outline-none"
                 />
               </div>
 
-              <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-800 font-mono text-[11px] text-slate-400 space-y-0.5">
-                <div>City: <span className="text-white">{currentSimulation.cityName}</span></div>
-                <div>Target Horizon: <span className="text-white">{currentSimulation.targetYear}</span></div>
-                <div>Resilience Score: <span className="text-emerald-400 font-bold">{currentSimulation.overallResilienceScore.intervention}/100 (+{currentSimulation.overallResilienceScore.gain} pts)</span></div>
-              </div>
+              {currentSimulation && (
+                <div className="bg-[#E7EEE5] p-3 rounded-lg border border-[#DDE4DA] space-y-1 text-[#26332C]">
+                  <div><strong>City:</strong> {currentSimulation.cityName} ({currentSimulation.targetYear})</div>
+                  <div><strong>Resilience Gain:</strong> +{currentSimulation.overallResilienceScore.gain} pts</div>
+                </div>
+              )}
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="pt-2 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={onCloseSaveDialog}
-                  className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg"
+                  className="px-4 py-2 bg-white hover:bg-[#F6F7F1] border border-[#DDE4DA] text-[#66736A] rounded-lg font-medium cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg shadow-md"
+                  className="px-4 py-2 bg-[#245B43] hover:bg-[#183D30] text-white rounded-lg font-semibold cursor-pointer"
                 >
-                  Confirm &amp; Persist
+                  Save Scenario
                 </button>
               </div>
             </form>
@@ -174,85 +176,91 @@ export const SavedScenarios: React.FC<SavedScenariosProps> = ({
         </div>
       )}
 
-      {/* Catalog Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 sm:p-6 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-            <Bookmark className="w-5 h-5 text-emerald-400" />
-            Persisted Climate Scenarios Catalog
-          </h2>
-          <p className="text-xs text-slate-400">
-            Compare alternative futures saved across multiple municipal planning sessions.
-          </p>
+      {/* Main Scenarios List View */}
+      <div className="bg-white border border-[#DDE4DA] rounded-xl p-5 sm:p-6 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
+          <div>
+            <h2 className="text-lg sm:text-xl font-bold text-[#183D30] flex items-center gap-2">
+              <Bookmark className="w-5 h-5 text-[#245B43]" />
+              Saved Scenarios &amp; City Futures Catalog
+            </h2>
+            <p className="text-xs text-[#66736A] mt-0.5">
+              Load, review, or compare previously tested intervention packages.
+            </p>
+          </div>
+
+          <span className="text-xs font-mono font-bold text-[#245B43] bg-[#E7EEE5] border border-[#DDE4DA] px-2.5 py-1 rounded-lg">
+            {scenarios.length} Scenarios Stored
+          </span>
         </div>
 
-        <button
-          onClick={loadScenarios}
-          className="text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700 transition-colors"
-        >
-          Refresh Catalog
-        </button>
-      </div>
-
-      {/* Scenarios Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {scenarios.map((scen) => (
-          <div
-            key={scen.id}
-            className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-sm hover:border-slate-700 transition-all space-y-4"
-          >
-            <div>
-              <div className="flex items-center justify-between text-xs mb-2">
-                <span className="font-bold text-white font-mono">{scen.cityName}</span>
-                <span className="bg-emerald-950/60 border border-emerald-800/60 text-emerald-400 px-2 py-0.5 rounded text-[11px] font-mono font-semibold">
-                  {scen.targetYear} Horizon
-                </span>
-              </div>
-
-              <h3 className="text-sm font-bold text-slate-100 mb-1">{scen.title}</h3>
-              <p className="text-xs text-slate-400 leading-relaxed mb-3">{scen.description}</p>
-
-              {/* Tags */}
-              <div className="flex flex-wrap gap-1 mb-3">
-                {scen.tags?.map((t, idx) => (
-                  <span
-                    key={idx}
-                    className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-medium"
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-
-              {/* Resilience Score Badge */}
-              <div className="bg-slate-950/60 border border-slate-800/80 p-2.5 rounded-lg flex items-center justify-between text-xs font-mono">
-                <span className="text-slate-400">Resilience Score:</span>
-                <span className="font-bold text-emerald-400">
-                  {scen.resilienceScore}/100 (+{scen.resilienceGain} pts)
-                </span>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="pt-3 border-t border-slate-800 flex items-center justify-between gap-2">
-              <button
-                onClick={() => onLoadScenario(scen)}
-                className="flex-1 py-1.5 px-3 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <FolderOpen className="w-3.5 h-3.5" />
-                <span>Load into Lab</span>
-              </button>
-
-              <button
-                onClick={() => handleDelete(scen.id)}
-                className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
-                title="Delete saved scenario"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
+        {scenarios.length === 0 ? (
+          <div className="p-8 text-center text-[#66736A] bg-[#F6F7F1] rounded-xl border border-[#DDE4DA]">
+            <FolderOpen className="w-10 h-10 text-[#477F78] mx-auto mb-2" />
+            <h4 className="text-sm font-semibold text-[#183D30]">No Saved Scenarios</h4>
+            <p className="text-xs text-[#66736A] max-w-sm mx-auto mt-1">
+              Configure parameters in the Simulation Lab and click "Save Future" to preserve scenarios.
+            </p>
           </div>
-        ))}
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {scenarios.map((scen) => (
+              <div
+                key={scen.id}
+                className="bg-white border border-[#DDE4DA] rounded-xl p-4 sm:p-5 flex flex-col justify-between hover:border-[#477F78] transition-all shadow-xs space-y-3"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold text-[#245B43] bg-[#E7EEE5] px-2 py-0.5 rounded">
+                      {scen.cityName} · {scen.targetYear}
+                    </span>
+                    <span className="text-xs font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded">
+                      +{scen.resilienceGain} pts
+                    </span>
+                  </div>
+
+                  <h3 className="text-sm font-bold text-[#183D30]">{scen.title}</h3>
+                  <p className="text-xs text-[#66736A] leading-relaxed line-clamp-2">
+                    {scen.description}
+                  </p>
+
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {scen.tags.map((t, idx) => (
+                      <span
+                        key={idx}
+                        className="text-[10px] bg-[#F6F7F1] text-[#66736A] border border-[#DDE4DA] px-1.5 py-0.5 rounded"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-[#DDE4DA] flex items-center justify-between">
+                  <span className="text-[10px] text-[#66736A]">
+                    Score: <strong className="text-[#183D30]">{scen.resilienceScore}/100</strong>
+                  </span>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => onLoadScenario(scen)}
+                      className="px-3 py-1.5 bg-[#245B43] hover:bg-[#183D30] text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                    >
+                      Load Future
+                    </button>
+                    <button
+                      onClick={() => handleDelete(scen.id)}
+                      className="p-1.5 text-[#66736A] hover:text-rose-600 transition-colors cursor-pointer"
+                      title="Delete scenario"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,9 +1,30 @@
 /**
- * EARTHSIM: City Futures Lab
- * Core Type Definitions
+ * TETRA VISION
+ * Explore Tomorrow. Shape a Resilient Planet.
+ * Core Type Definitions & Scientific Models
  */
 
-export type TargetYear = 2025 | 2030 | 2035 | 2040;
+export type TargetYear =
+  | 2025
+  | 2026
+  | 2027
+  | 2028
+  | 2029
+  | 2030
+  | 2031
+  | 2032
+  | 2033
+  | 2034
+  | 2035
+  | 2036
+  | 2037
+  | 2038
+  | 2039
+  | 2040;
+
+export const SUPPORTED_YEARS: TargetYear[] = [
+  2025, 2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034, 2035, 2036, 2037, 2038, 2039, 2040
+];
 
 export type EnvironmentalLayerId =
   | 'extreme_heat'
@@ -18,7 +39,7 @@ export interface EnvironmentalLayerMeta {
   unit: string;
   scaleDescription: string;
   lowerIsBetter: boolean;
-  colorScale: string[]; // Tailwind or hex colors
+  colorScale: string[];
   icon: string;
 }
 
@@ -27,7 +48,7 @@ export interface CityArea {
   cityId: string;
   name: string;
   zone: string;
-  populationEstimate: number;
+  populationEstimate: number; // Baseline ward population (Census 2011 / BBMP official enumeration)
   areaKm2: number;
   center: [number, number]; // [lat, lng]
   svgPolygon: string; // SVG path or polygon points for crisp map rendering
@@ -55,6 +76,9 @@ export interface City {
   areaCount: number;
   primaryRisks: EnvironmentalLayerId[];
   svgViewBox: string;
+  baselinePopulation2011: number;
+  annualGrowthRate: number; // e.g. 0.026 (2.6% p.a.)
+  populationSource: string;
 }
 
 export interface InterventionParameters {
@@ -84,6 +108,18 @@ export interface IndicatorDelta {
   unit: string;
 }
 
+export interface AreaPopulationProjection {
+  areaId: string;
+  areaName: string;
+  baselinePopulation: number;
+  baselineReferenceYear: number;
+  targetYear: TargetYear;
+  projectedPopulation: number;
+  absoluteChange: number;
+  densityPerKm2: number;
+  annualGrowthRate: number;
+}
+
 export interface AreaSimulationResult {
   areaId: string;
   areaName: string;
@@ -92,6 +128,7 @@ export interface AreaSimulationResult {
   deltas: Record<EnvironmentalLayerId, number>;
   vulnerabilityRank: number;
   topBenefitLayer: EnvironmentalLayerId;
+  population: AreaPopulationProjection;
 }
 
 export interface SimulationFormulaExplanation {
@@ -102,6 +139,26 @@ export interface SimulationFormulaExplanation {
   primaryDrivers: string[];
 }
 
+export interface PopulationProjection {
+  baselinePopulation: number;
+  baselineReferenceYear: number; // 2011
+  targetYear: TargetYear;
+  projectedPopulation: number;
+  absoluteChange: number;
+  percentageChange: number;
+  annualGrowthRate: number; // e.g. 0.026
+  growthRatePercent: number; // e.g. 2.6
+  projectionMethod: string;
+  assumptions: string[];
+  uncertaintyRange: {
+    lowEstimate: number;
+    highEstimate: number;
+  };
+  dataClassification: 'OfficialHistorical' | 'Projected' | 'Illustrative';
+  source: string;
+  sourceUrl: string;
+}
+
 export interface SimulationResult {
   id: string;
   cityId: string;
@@ -109,6 +166,7 @@ export interface SimulationResult {
   targetYear: TargetYear;
   interventions: InterventionParameters;
   timestamp: string;
+  populationProjection: PopulationProjection;
   baselineCitywide: EnvironmentalIndicators;
   interventionCitywide: EnvironmentalIndicators;
   deltas: IndicatorDelta[];
@@ -208,8 +266,16 @@ export interface DataProvenanceRecord {
   geographicResolution: string;
   updateTimestamp: string;
   measurementUnits: string;
-  classification: 'Observed' | 'Projected' | 'Modeled' | 'Illustrative';
+  classification:
+    | 'Observed'
+    | 'OfficialHistorical'
+    | 'SatelliteDerived'
+    | 'Modeled'
+    | 'Projected'
+    | 'Illustrative';
   uncertaintyEstimate: string;
   processingNotes: string;
   relevantLayers: EnvironmentalLayerId[];
+  metricCoverage?: string;
+  limitations?: string;
 }

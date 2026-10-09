@@ -1,8 +1,9 @@
 /**
- * EARTHSIM: City Futures Lab
- * Main Application Component
+ * TETRA VISION
+ * Explore Tomorrow. Shape a Resilient Planet.
+ * Main Application Controller
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   City,
   CityArea,
@@ -14,6 +15,7 @@ import {
 } from './types/earthsim.ts';
 import { api } from './api/client.ts';
 import { Header } from './components/Header.tsx';
+import { YearTimeline } from './components/YearTimeline.tsx';
 import { MapViewer } from './components/MapViewer.tsx';
 import { SimulationControls } from './components/SimulationControls.tsx';
 import { ScenarioComparison } from './components/ScenarioComparison.tsx';
@@ -21,7 +23,6 @@ import { InterventionLab } from './components/InterventionLab.tsx';
 import { AIStrategist } from './components/AIStrategist.tsx';
 import { EvidenceProvenance } from './components/EvidenceProvenance.tsx';
 import { SavedScenarios } from './components/SavedScenariosModal.tsx';
-import { AWSArchitectureModal } from './components/AWSArchitectureModal.tsx';
 import {
   Sparkles,
   AlertCircle,
@@ -31,7 +32,13 @@ import {
   ShieldCheck,
   Building2,
   TreeDeciduous,
-  Waves
+  Waves,
+  Thermometer,
+  Droplets,
+  Wind,
+  Info,
+  Users,
+  Compass
 } from 'lucide-react';
 
 const INITIAL_PARAMETERS: InterventionParameters = {
@@ -47,7 +54,7 @@ export default function App() {
   const [cities, setCities] = useState<City[]>([]);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [areas, setAreas] = useState<CityArea[]>([]);
-  const [targetYear, setTargetYear] = useState<TargetYear>(2035);
+  const [targetYear, setTargetYear] = useState<TargetYear>(2030);
   const [parameters, setParameters] = useState<InterventionParameters>(INITIAL_PARAMETERS);
   const [activeLayer, setActiveLayer] = useState<EnvironmentalLayerId>('extreme_heat');
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
@@ -61,8 +68,10 @@ export default function App() {
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const [serverStatus, setServerStatus] = useState<'connected' | 'checking' | 'error'>('checking');
   const [showSaveDialog, setShowSaveDialog] = useState<boolean>(false);
-  const [showAwsModal, setShowAwsModal] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Request race-condition protection ref
+  const activeRequestRef = useRef<number>(0);
 
   // 1. Initial Load: Check Health & Fetch Cities
   useEffect(() => {
@@ -82,39 +91,48 @@ export default function App() {
           await loadCityData(defaultCity.id, targetYear, INITIAL_PARAMETERS);
         }
       } catch (err: any) {
-        console.error('Failed initializing application:', err);
+        console.error('Failed initializing TETRA VISION platform:', err);
         setServerStatus('error');
-        setErrorMessage('Failed connecting to EARTHSIM backend services. Please refresh.');
+        setErrorMessage('Failed connecting to TETRA VISION simulation services. Please refresh.');
       }
     };
 
     initApp();
   }, []);
 
-  // 2. Load City Data & Run Simulation
+  // 2. Load City Data & Run Simulation (with race condition protection for rapid timeline scrubbing)
   const loadCityData = async (
     cityId: string,
     year: TargetYear,
     params: InterventionParameters
   ) => {
+    const currentReqId = ++activeRequestRef.current;
     setIsSimulating(true);
     setErrorMessage(null);
-    try {
-      const areaData = await api.getCityAreas(cityId);
-      setAreas(areaData.areas);
 
-      // Run initial simulation
-      const simResult = await api.runSimulation({
-        cityId,
-        targetYear: year,
-        interventions: params
-      });
-      setSimulation(simResult);
+    try {
+      const [areaData, simResult] = await Promise.all([
+        api.getCityAreas(cityId),
+        api.runSimulation({
+          cityId,
+          targetYear: year,
+          interventions: params
+        })
+      ]);
+
+      if (currentReqId === activeRequestRef.current) {
+        setAreas(areaData.areas);
+        setSimulation(simResult);
+      }
     } catch (err: any) {
-      console.error('Error loading city data:', err);
-      setErrorMessage(err.message || 'Error executing simulation.');
+      if (currentReqId === activeRequestRef.current) {
+        console.error('Error loading simulation data:', err);
+        setErrorMessage(err.message || 'Error executing simulation run.');
+      }
     } finally {
-      setIsSimulating(false);
+      if (currentReqId === activeRequestRef.current) {
+        setIsSimulating(false);
+      }
     }
   };
 
@@ -128,7 +146,7 @@ export default function App() {
     }
   };
 
-  // Switch Year
+  // Switch Year (from Timeline)
   const handleSelectYear = (year: TargetYear) => {
     setTargetYear(year);
     if (selectedCity) {
@@ -139,6 +157,7 @@ export default function App() {
   // Run Manual Simulation
   const handleRunSimulation = async () => {
     if (!selectedCity) return;
+    const currentReqId = ++activeRequestRef.current;
     setIsSimulating(true);
     setErrorMessage(null);
     try {
@@ -147,12 +166,18 @@ export default function App() {
         targetYear,
         interventions: parameters
       });
-      setSimulation(result);
+      if (currentReqId === activeRequestRef.current) {
+        setSimulation(result);
+      }
     } catch (err: any) {
-      console.error('Simulation failed:', err);
-      setErrorMessage(err.message || 'Simulation execution failed.');
+      if (currentReqId === activeRequestRef.current) {
+        console.error('Simulation failed:', err);
+        setErrorMessage(err.message || 'Simulation execution failed.');
+      }
     } finally {
-      setIsSimulating(false);
+      if (currentReqId === activeRequestRef.current) {
+        setIsSimulating(false);
+      }
     }
   };
 
@@ -178,65 +203,150 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen bg-[#F6F7F1] text-[#26332C] flex flex-col font-sans selection:bg-[#245B43] selection:text-white">
       {/* Navigation Header */}
       <Header
         cities={cities}
         selectedCity={selectedCity}
         onSelectCity={handleSelectCity}
-        targetYear={targetYear}
-        onSelectYear={handleSelectYear}
         activeTab={activeTab}
         onSelectTab={setActiveTab}
-        onOpenAwsModal={() => setShowAwsModal(true)}
         serverStatus={serverStatus}
       />
 
-      {/* Error banner if any */}
+      {/* Error notification banner if any */}
       {errorMessage && (
-        <div className="bg-rose-950/80 border-b border-rose-800 text-rose-200 px-4 py-2.5 text-xs flex items-center justify-between">
+        <div className="bg-rose-50 border-b border-rose-200 text-rose-800 px-4 py-2.5 text-xs flex items-center justify-between">
           <div className="flex items-center gap-2 max-w-7xl mx-auto w-full">
-            <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+            <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
             <span>{errorMessage}</span>
           </div>
         </div>
       )}
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
-        {/* TAB 1: Simulation Lab (Map + Parameter Controls) */}
+      {/* Main Container */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-5">
+        {/* TAB 1: Simulation Lab & Environmental Map */}
         {activeTab === 'lab' && selectedCity && (
-          <div className="space-y-6">
-            {/* Quick Context Strip */}
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 border border-slate-800/80 px-4 py-2.5 rounded-xl text-xs">
-              <div className="flex items-center gap-2 text-slate-300">
-                <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="font-semibold text-white">{selectedCity.name}</span>
-                <span className="text-slate-500">·</span>
-                <span className="text-slate-400">{selectedCity.region}</span>
-              </div>
-
-              {simulation && (
-                <div className="flex items-center gap-4 font-mono text-[11px]">
-                  <div>
-                    <span className="text-slate-400">Baseline BAU: </span>
-                    <strong className="text-amber-400">{simulation.overallResilienceScore.baseline}/100</strong>
+          <div className="space-y-5">
+            {/* 1. Concise Product Mission & Context Header */}
+            <div className="bg-white border border-[#DDE4DA] rounded-xl p-4 sm:p-5 shadow-xs">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold text-[#245B43] bg-[#E7EEE5] border border-[#DDE4DA] px-2 py-0.5 rounded">
+                      Urban Climate Simulation Lab
+                    </span>
+                    <span className="text-xs text-[#66736A] font-medium">
+                      Official Census 2011 Baseline &amp; CMIP6 SSP2-4.5 Multi-Model Calibration
+                    </span>
                   </div>
-                  <div>
-                    <span className="text-slate-400">With Interventions: </span>
-                    <strong className="text-emerald-400 font-bold">{simulation.overallResilienceScore.intervention}/100</strong>
-                  </div>
-                  <div className="text-cyan-400 font-bold">
-                    (+{simulation.overallResilienceScore.gain} pts Gain)
-                  </div>
+                  <h1 className="text-lg sm:text-xl font-bold text-[#183D30] tracking-tight">
+                    Simulate Environmental Futures for {selectedCity.name}
+                  </h1>
+                  <p className="text-xs text-[#66736A] max-w-3xl leading-relaxed">
+                    Explore how urban heat, flood exposure, groundwater overdraft, and air pollution evolve through 2040.
+                    Test targeted interventions—such as cool roofs, urban forest buffers, and rainwater recharge—to evaluate resilience outcomes before implementing municipal capital works.
+                  </p>
                 </div>
-              )}
+
+                {simulation && (
+                  <div className="flex items-center gap-4 bg-[#F6F7F1] border border-[#DDE4DA] px-4 py-2.5 rounded-xl text-xs font-mono">
+                    <div className="text-right">
+                      <div className="text-[10px] text-[#66736A] uppercase font-medium">Baseline Score</div>
+                      <div className="text-base font-bold text-amber-700">
+                        {simulation.overallResilienceScore.baseline}
+                        <span className="text-[10px] text-[#66736A] font-normal">/100</span>
+                      </div>
+                    </div>
+                    <div className="text-[#477F78] font-bold">→</div>
+                    <div className="text-right">
+                      <div className="text-[10px] text-[#245B43] uppercase font-bold">With Actions</div>
+                      <div className="text-base font-bold text-[#245B43]">
+                        {simulation.overallResilienceScore.intervention}
+                        <span className="text-[10px] text-[#66736A] font-normal">/100</span>
+                      </div>
+                    </div>
+                    <div className="border-l border-[#DDE4DA] pl-3 text-right">
+                      <div className="text-[10px] text-[#66736A] uppercase font-medium">Net Relief</div>
+                      <div className="text-base font-bold text-emerald-800">
+                        +{simulation.overallResilienceScore.gain} pts
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Main Interactive Grid: Map + Sliders */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Map (7 cols on desktop) */}
-              <div className="lg:col-span-7 h-[560px]">
+            {/* 2. Scrollable Year Timeline (Every year from 2025 to 2040 inclusive) */}
+            <YearTimeline
+              selectedYear={targetYear}
+              onSelectYear={handleSelectYear}
+              isSimulating={isSimulating}
+            />
+
+            {/* 3. Official Population Projection KPI Panel */}
+            {simulation && simulation.populationProjection && (
+              <div className="bg-white border border-[#DDE4DA] rounded-xl p-4 shadow-xs">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                  <div className="md:col-span-5 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-[#E7EEE5] border border-[#DDE4DA] flex items-center justify-center text-[#245B43]">
+                        <Users className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-[#183D30] uppercase tracking-wide">
+                          Official Population Projection Dynamics
+                        </span>
+                        <div className="text-[11px] text-[#66736A]">
+                          Anchor: Census 2011 ({simulation.populationProjection.baselinePopulation.toLocaleString()} heads)
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-[#66736A] leading-relaxed">
+                      Calibrated with MoHFW National Commission on Population Technical Group cohort projection rate (+{simulation.populationProjection.growthRatePercent}% p.a.).
+                    </p>
+                  </div>
+
+                  <div className="md:col-span-7 grid grid-cols-3 gap-3 bg-[#F6F7F1] p-3 rounded-xl border border-[#DDE4DA] text-center">
+                    <div>
+                      <div className="text-[10px] text-[#66736A] uppercase font-medium">Census 2011 Baseline</div>
+                      <div className="text-sm font-mono font-bold text-[#183D30]">
+                        {(simulation.populationProjection.baselinePopulation / 1000000).toFixed(2)}M
+                      </div>
+                      <div className="text-[10px] text-[#66736A]">Official enumeration</div>
+                    </div>
+
+                    <div>
+                      <div className="text-[10px] text-[#245B43] uppercase font-bold">
+                        {simulation.targetYear} Horizon Projection
+                      </div>
+                      <div className="text-base font-mono font-bold text-[#245B43]">
+                        {(simulation.populationProjection.projectedPopulation / 1000000).toFixed(2)}M
+                      </div>
+                      <div className="text-[10px] text-[#245B43] font-medium">
+                        {simulation.populationProjection.projectedPopulation.toLocaleString()} persons
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-[10px] text-[#66736A] uppercase font-medium">Net Growth from 2011</div>
+                      <div className="text-sm font-mono font-bold text-emerald-800">
+                        +{simulation.populationProjection.percentageChange}%
+                      </div>
+                      <div className="text-[10px] text-[#66736A]">
+                        +{(simulation.populationProjection.absoluteChange / 1000000).toFixed(2)}M added
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 4. Main Interactive Workspace: Map + Intervention Parameter Controls */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+              {/* Map (7 cols) */}
+              <div className="lg:col-span-7 h-[580px]">
                 <MapViewer
                   city={selectedCity}
                   areas={areas}
@@ -250,8 +360,8 @@ export default function App() {
                 />
               </div>
 
-              {/* Simulation Controls (5 cols on desktop) */}
-              <div className="lg:col-span-5 h-[560px] flex flex-col">
+              {/* Simulation Controls (5 cols) */}
+              <div className="lg:col-span-5 h-[580px] flex flex-col">
                 <SimulationControls
                   parameters={parameters}
                   onChangeParameters={setParameters}
@@ -263,6 +373,40 @@ export default function App() {
                 />
               </div>
             </div>
+
+            {/* 5. Quick Environmental Indicator Metrics Strip */}
+            {simulation && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-1">
+                {simulation.deltas.map((delta) => {
+                  const isGood = delta.improved;
+                  return (
+                    <div
+                      key={delta.layer}
+                      className="bg-white border border-[#DDE4DA] rounded-xl p-3.5 shadow-2xs space-y-1"
+                    >
+                      <div className="text-[11px] font-semibold text-[#183D30] capitalize">
+                        {delta.layer.replace('_', ' ')}
+                      </div>
+                      <div className="flex items-baseline justify-between text-xs font-mono">
+                        <span className="text-[#66736A]">{delta.baseline}</span>
+                        <span className="text-[#477F78]">→</span>
+                        <span className="text-[#183D30] font-bold">{delta.intervention}</span>
+                        <span
+                          className={`font-semibold text-xs ${
+                            isGood ? 'text-emerald-800' : 'text-[#66736A]'
+                          }`}
+                        >
+                          {delta.absoluteChange > 0 ? '+' : ''}{delta.absoluteChange}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-[#66736A]">
+                        {delta.unit} · {delta.relativeChangePercent > 0 ? `+${delta.relativeChangePercent}%` : `${delta.relativeChangePercent}%`}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -271,7 +415,7 @@ export default function App() {
           <ScenarioComparison simulation={simulation} areas={areas} />
         )}
 
-        {/* TAB 3: Intervention Optimizer */}
+        {/* TAB 3: Intervention Optimizer & Budget */}
         {activeTab === 'optimizer' && selectedCity && (
           <InterventionLab
             cityId={selectedCity.id}
@@ -285,7 +429,7 @@ export default function App() {
           <AIStrategist simulation={simulation} />
         )}
 
-        {/* TAB 5: Data & Evidence */}
+        {/* TAB 5: Scientific Evidence & Data */}
         {activeTab === 'evidence' && <EvidenceProvenance />}
 
         {/* TAB 6: Saved Scenarios */}
@@ -299,7 +443,7 @@ export default function App() {
         )}
       </main>
 
-      {/* Save Scenario Modal (if opened from SimulationControls) */}
+      {/* Save Scenario Modal Dialog */}
       {showSaveDialog && activeTab !== 'scenarios' && (
         <SavedScenarios
           currentSimulation={simulation}
@@ -309,26 +453,26 @@ export default function App() {
         />
       )}
 
-      {/* AWS Architecture & Hackathon Info Modal */}
-      <AWSArchitectureModal
-        isOpen={showAwsModal}
-        onClose={() => setShowAwsModal(false)}
-      />
-
       {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-4 px-4 sm:px-6 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <footer className="border-t border-[#DDE4DA] bg-white py-5 px-4 sm:px-6 text-xs text-[#66736A]">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-300">EARTHSIM: City Futures Lab</span>
-            <span>·</span>
-            <span>We Make Devs × AWS Bharat Builds Tour</span>
+            <span className="font-bold text-[#183D30]">TETRA VISION</span>
+            <span className="text-[#DDE4DA]">·</span>
+            <span className="text-[#66736A]">Explore Tomorrow. Shape a Resilient Planet.</span>
           </div>
-          <div className="flex items-center gap-3 text-[11px] text-slate-500">
-            <span>Model v2.4-deterministic</span>
+          <div className="flex items-center gap-3 text-[11px] text-[#66736A] flex-wrap justify-center">
+            <span>Model v3.2-deterministic</span>
             <span>·</span>
-            <span>CMIP6 SSP2-4.5</span>
+            <span>Census of India 2011 Cohorts</span>
             <span>·</span>
-            <span>Copernicus &amp; Landsat-8</span>
+            <span>IMD Gridded Surface Climatology</span>
+            <span>·</span>
+            <span>CPCB CAAQMS</span>
+            <span>·</span>
+            <span>CGWB NAQUIM</span>
+            <span>·</span>
+            <span>ISRO Bhuvan LULC</span>
           </div>
         </div>
       </footer>

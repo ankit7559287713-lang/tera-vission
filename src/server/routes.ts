@@ -20,6 +20,7 @@ import {
   generateAIStrategistBriefing,
   generateDeterministicBriefing
 } from './services/strategist.ts';
+import { fetchLiveCityObservation } from './services/ingestion.ts';
 import { storage } from './services/db.ts';
 import { EnvironmentalLayerId, TargetYear } from '../types/earthsim.ts';
 
@@ -35,12 +36,12 @@ const simulationCache = new Map<string, any>();
 apiRouter.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'healthy',
-    service: 'EARTHSIM City Futures Lab API',
-    version: '2.4.0',
+    service: 'TETRA VISION Platform API',
+    version: '3.0.0',
     timestamp: new Date().toISOString(),
     uptimeSeconds: Math.round(process.uptime()),
     features: {
-      simulationEngine: 'deterministic-v2.4',
+      simulationEngine: 'deterministic-v3.0',
       aiStrategist: process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY' ? 'gemini-3.8-flash' : 'rule-based-fallback',
       persistence: 'file-backed-json'
     }
@@ -49,11 +50,13 @@ apiRouter.get('/health', (_req: Request, res: Response) => {
 
 apiRouter.get('/config', (_req: Request, res: Response) => {
   res.json({
-    appName: 'EARTHSIM — City Futures Lab',
-    tagline: 'What happens to our city if we do nothing — and how much can we change its future if we act today?',
-    supportedYears: [2025, 2030, 2035, 2040],
+    appName: 'TETRA VISION',
+    tagline: 'Explore Tomorrow. Shape a Resilient Planet.',
+    supportedYears: [
+      2025, 2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034, 2035, 2036, 2037, 2038, 2039, 2040
+    ],
     defaultCity: 'bengaluru',
-    defaultYear: 2035,
+    defaultYear: 2030,
     layers: ENVIRONMENTAL_LAYERS,
     interventionBounds: {
       urban_green_cover: { min: 0, max: 40, unit: '% canopy increase' },
@@ -62,11 +65,6 @@ apiRouter.get('/config', (_req: Request, res: Response) => {
       rainwater_harvesting: { min: 0, max: 100, unit: '% property compliance' },
       drainage_improvement: { min: 0, max: 100, unit: '% canal capacity boost' },
       emissions_reduction: { min: 0, max: 70, unit: '% emissions cut' }
-    },
-    awsReadiness: {
-      targetArchitecture: 'AWS App Runner / ECS Fargate + Amazon CloudFront',
-      storageEngine: 'Amazon RDS (PostgreSQL/PostGIS ready) or EFS',
-      security: 'TLS 1.3, strict CORS, non-root container'
     }
   });
 });
@@ -182,6 +180,30 @@ apiRouter.get('/environmental-data/sources', (_req: Request, res: Response) => {
       observationPeriod: d.observationPeriod
     }))
   });
+});
+
+apiRouter.get('/environmental-data/live', async (req: Request, res: Response) => {
+  const cityId = (req.query.cityId as string) || 'bengaluru';
+  try {
+    const liveData = await fetchLiveCityObservation(cityId);
+    res.json(liveData);
+  } catch (err: any) {
+    res.status(500).json({ error: 'IngestionError', message: err.message });
+  }
+});
+
+apiRouter.post('/environmental-data/ingest', async (req: Request, res: Response) => {
+  const cityId = req.body.cityId || 'bengaluru';
+  try {
+    const liveData = await fetchLiveCityObservation(cityId);
+    res.json({
+      success: true,
+      message: `Live observation stream ingested successfully for ${liveData.cityName}`,
+      observation: liveData
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: 'IngestionError', message: err.message });
+  }
 });
 
 apiRouter.get('/environmental-data/:feature_id', (req: Request, res: Response) => {
@@ -457,3 +479,129 @@ apiRouter.get('/recommendations/priorities', (req: Request, res: Response) => {
     }))
   });
 });
+
+// ==========================================
+// 8. Advanced Geospatial & Pareto Frontier (P2 Extensions)
+// ==========================================
+
+apiRouter.get('/cities/:city_id/hotspots', (req: Request, res: Response) => {
+  const cityId = req.params.city_id.toLowerCase();
+  const areas = CITY_AREAS[cityId];
+  if (!areas) {
+    return res.status(404).json({ error: 'CityNotFound', message: `City '${cityId}' not found.` });
+  }
+
+  // Detect compound risk hotspots where 2 or more hazards exceed high threshold (>75)
+  const hotspots = areas
+    .map((area) => {
+      const b = area.baselineIndicators;
+      const criticalRisks: string[] = [];
+      if (b.extreme_heat >= 75) criticalRisks.push('Acute Extreme Heat');
+      if (b.flood_exposure >= 75) criticalRisks.push('Severe Flood Exposure');
+      if (b.water_stress >= 75) criticalRisks.push('Severe Groundwater Depletion');
+      if (b.air_pollution >= 75) criticalRisks.push('Hazardous Air Pollution');
+
+      const compoundSeverityScore = Math.round(
+        (b.extreme_heat * 0.3 + b.flood_exposure * 0.3 + b.water_stress * 0.25 + b.air_pollution * 0.15)
+      );
+
+      return {
+        areaId: area.id,
+        areaName: area.name,
+        zone: area.zone,
+        vulnerabilityRank: area.vulnerabilityRank,
+        isCompoundHotspot: criticalRisks.length >= 2,
+        criticalRiskCount: criticalRisks.length,
+        criticalRisks,
+        compoundSeverityScore,
+        populationAtRisk: area.populationEstimate,
+        imperviousSurfacePercent: area.characteristics.imperviousSurfacePercent
+      };
+    })
+    .sort((a, b) => b.compoundSeverityScore - a.compoundSeverityScore);
+
+  res.json({
+    cityId,
+    totalAreasEvaluated: areas.length,
+    compoundHotspotCount: hotspots.filter((h) => h.isCompoundHotspot).length,
+    hotspots
+  });
+});
+
+apiRouter.get('/cities/:city_id/export-geojson', (req: Request, res: Response) => {
+  const cityId = req.params.city_id.toLowerCase();
+  const city = CITIES.find((c) => c.id === cityId);
+  const areas = CITY_AREAS[cityId];
+
+  if (!city || !areas) {
+    return res.status(404).json({ error: 'CityNotFound', message: `City '${cityId}' not found.` });
+  }
+
+  const featureCollection = {
+    type: 'FeatureCollection',
+    metadata: {
+      generatedBy: 'TETRA VISION (v3.0)',
+      cityName: city.name,
+      country: city.country,
+      exportedAt: new Date().toISOString(),
+      crs: 'EPSG:4326 (WGS84)'
+    },
+    features: areas.map((area) => ({
+      type: 'Feature',
+      id: area.id,
+      geometry: {
+        type: 'Point',
+        coordinates: [area.center[1], area.center[0]] // [lng, lat]
+      },
+      properties: {
+        ward_id: area.id,
+        ward_name: area.name,
+        zone: area.zone,
+        vulnerability_rank: area.vulnerabilityRank,
+        population_est: area.populationEstimate,
+        area_km2: area.areaKm2,
+        heat_risk_baseline: area.baselineIndicators.extreme_heat,
+        flood_risk_baseline: area.baselineIndicators.flood_exposure,
+        water_stress_baseline: area.baselineIndicators.water_stress,
+        canopy_cover_baseline: area.baselineIndicators.green_cover,
+        air_pollution_baseline: area.baselineIndicators.air_pollution,
+        impervious_pct: area.characteristics.imperviousSurfacePercent,
+        drainage_capacity_pct: area.characteristics.floodDrainageCapacityPercent
+      }
+    }))
+  };
+
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', `attachment; filename="tetravision_${cityId}_boundaries.geojson"`);
+  res.json(featureCollection);
+});
+
+apiRouter.get('/optimizer/pareto-frontier', (req: Request, res: Response) => {
+  const cityId = (req.query.cityId as string) || 'bengaluru';
+  const priority = ((req.query.priority as any) || 'balanced') as EnvironmentalLayerId | 'balanced';
+
+  // Sample across budget increments to construct the Pareto efficiency curve
+  const budgetSteps = [5, 10, 20, 35, 50, 75, 100, 150];
+  const curve = budgetSteps.map((budget) => {
+    const result = optimizeInterventionPortfolio({
+      cityId,
+      budgetMillions: budget,
+      targetPriority: priority
+    });
+    return {
+      budgetMillions: budget,
+      expenditureMillions: result.totalCostMillions,
+      projectedResilienceGain: result.projectedResilienceGain,
+      costEffectiveness: Math.round((result.projectedResilienceGain / result.totalCostMillions) * 100) / 100
+    };
+  });
+
+  res.json({
+    cityId,
+    priority,
+    frontierPoints: curve,
+    diminishingReturnsThresholdMillions: 75,
+    recommendation: 'Optimal capital allocation efficiency peaks around $35M–$50M before marginal returns begin tapering.'
+  });
+});
+

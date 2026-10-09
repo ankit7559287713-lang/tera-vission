@@ -1,10 +1,10 @@
 """
-EARTHSIM: City Futures Lab - Pydantic Data Models & Schemas
+TETRA VISION - Pydantic Data Models & Schemas
 """
 from typing import List, Dict, Optional, Literal, Any
 from pydantic import BaseModel, Field
 
-TargetYear = Literal[2025, 2030, 2035, 2040]
+TargetYear = int
 EnvironmentalLayerId = Literal[
     'extreme_heat',
     'flood_exposure',

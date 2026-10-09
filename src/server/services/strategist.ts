@@ -93,7 +93,7 @@ export function generateDeterministicBriefing(
     criticalTradeoffs,
     monitoringGaps,
     confidenceAssessment: 'Moderate to High. Grounded in CMIP6 SSP2-4.5 regional downscaling and empirical micro-climate formulations. Uncertainty range ±8–14%.',
-    sourceAttribution: 'EARTHSIM Deterministic Resilience Engine (Scientific Fallback Mode)'
+    sourceAttribution: 'TETRA VISION Deterministic Resilience Engine (Scientific Fallback Mode)'
   };
 }
 
@@ -111,7 +111,7 @@ export async function generateAIStrategistBriefing(
 
   try {
     const ai = new GoogleGenAI();
-    const prompt = `You are the lead Environmental Intelligence & Urban Climate Strategist for EARTHSIM: City Futures Lab.
+    const prompt = `You are the lead Environmental Intelligence & Urban Climate Strategist for TETRA VISION.
 Analyze the following simulated urban futures run for ${input.simulation.cityName} (Target Year: ${input.simulation.targetYear}).
 
 === SIMULATION DATA CONTEXT ===
@@ -175,7 +175,7 @@ ${input.userPrompt ? `=== USER SPECIFIC QUERY ===\n${input.userPrompt}\n` : ''}
       return generateDeterministicBriefing(input.simulation, input.userPrompt);
     }
 
-    parsed.sourceAttribution = 'EARTHSIM AI Strategist (Powered by Gemini 3.8 Flash)';
+    parsed.sourceAttribution = 'TETRA VISION AI Strategist (Powered by Gemini 3.8 Flash)';
     return parsed;
   } catch (err) {
     console.warn('[AI Strategist] Falling back to deterministic engine due to:', err);

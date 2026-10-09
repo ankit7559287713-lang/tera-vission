@@ -1,7 +1,7 @@
 /**
- * EARTHSIM: Centralized API Client
+ * TETRA VISION: Centralized API Client
  *
- * Typesafe communication with EARTHSIM backend endpoints with
+ * Typesafe communication with TETRA VISION backend endpoints with
  * timeout management, error wrapping, and resilient offline fallbacks.
  */
 import {
@@ -193,5 +193,37 @@ export const api = {
   },
 
   getPriorities: (cityId: string) =>
-    request<{ cityId: string; priorities: any[] }>(`/recommendations/priorities?cityId=${cityId}`)
+    request<{ cityId: string; priorities: any[] }>(`/recommendations/priorities?cityId=${cityId}`),
+
+  // Live Ingestion & Advanced Geospatial
+  getLiveObservation: (cityId: string) =>
+    request<any>(`/environmental-data/live?cityId=${encodeURIComponent(cityId)}`),
+
+  ingestLiveStream: (cityId: string) =>
+    request<{ success: boolean; message: string; observation: any }>('/environmental-data/ingest', {
+      method: 'POST',
+      body: JSON.stringify({ cityId })
+    }),
+
+  getCompoundHotspots: (cityId: string) =>
+    request<{
+      cityId: string;
+      totalAreasEvaluated: number;
+      compoundHotspotCount: number;
+      hotspots: any[];
+    }>(`/cities/${encodeURIComponent(cityId)}/hotspots`),
+
+  getParetoFrontier: (cityId: string, priority: string = 'balanced') =>
+    request<{
+      cityId: string;
+      priority: string;
+      frontierPoints: Array<{
+        budgetMillions: number;
+        expenditureMillions: number;
+        projectedResilienceGain: number;
+        costEffectiveness: number;
+      }>;
+      diminishingReturnsThresholdMillions: number;
+      recommendation: string;
+    }>(`/optimizer/pareto-frontier?cityId=${encodeURIComponent(cityId)}&priority=${encodeURIComponent(priority)}`)
 };

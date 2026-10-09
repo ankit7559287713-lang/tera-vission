@@ -1,5 +1,5 @@
 """
-EARTHSIM: City Futures Lab - Python FastAPI REST Server
+TETRA VISION - Python FastAPI REST Server
 """
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,9 +14,9 @@ from .models import (
 from .simulation_engine import run_python_simulation, CITIES
 
 app = FastAPI(
-    title="EARTHSIM — City Futures Lab API",
-    description="Environmental Intelligence & Future Simulation Platform for city climate resilience",
-    version="2.4.0"
+    title="TETRA VISION Platform API",
+    description="Explore Tomorrow. Shape a Resilient Planet.",
+    version="3.0.0"
 )
 
 app.add_middleware(
@@ -54,10 +54,10 @@ SAVED_SCENARIOS: List[Dict[str, Any]] = [
 def health():
     return {
         "status": "healthy",
-        "service": "EARTHSIM FastAPI Engine",
-        "version": "2.4.0",
+        "service": "TETRA VISION FastAPI Engine",
+        "version": "3.0.0",
         "features": {
-            "simulationEngine": "deterministic-v2.4",
+            "simulationEngine": "deterministic-v3.0",
             "framework": "FastAPI"
         }
     }

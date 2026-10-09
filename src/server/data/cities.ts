@@ -64,7 +64,10 @@ export const CITIES: City[] = [
     climateContext: 'Tropical savanna (Aw/BSh), elevation ~920m. Urban Heat Island delta up to +4.2°C; 79% loss of water bodies over 4 decades.',
     areaCount: 8,
     primaryRisks: ['water_stress', 'flood_exposure', 'extreme_heat'],
-    svgViewBox: '0 0 600 500'
+    svgViewBox: '0 0 600 500',
+    baselinePopulation2011: 8443675,
+    annualGrowthRate: 0.032,
+    populationSource: 'Census of India 2011 (BBMP enumeration) & MoHFW Technical Group Projections (July 2020)'
   },
   {
     id: 'delhi',
@@ -78,7 +81,10 @@ export const CITIES: City[] = [
     climateContext: 'Semi-arid (BSh) with continental extremes. Peak summer surface temps >50°C; severe winter PM2.5 spikes >400 µg/m³.',
     areaCount: 8,
     primaryRisks: ['air_pollution', 'extreme_heat', 'flood_exposure'],
-    svgViewBox: '0 0 600 500'
+    svgViewBox: '0 0 600 500',
+    baselinePopulation2011: 16787941,
+    annualGrowthRate: 0.021,
+    populationSource: 'Census of India 2011 (NCT of Delhi) & MoHFW Technical Group Urban Projections'
   },
   {
     id: 'mumbai',
@@ -92,7 +98,10 @@ export const CITIES: City[] = [
     climateContext: 'Tropical monsoon (Am). High humidity combined with heat index >45°C; flash flooding during high-tide rainfall events.',
     areaCount: 8,
     primaryRisks: ['flood_exposure', 'extreme_heat', 'water_stress'],
-    svgViewBox: '0 0 600 500'
+    svgViewBox: '0 0 600 500',
+    baselinePopulation2011: 12442373,
+    annualGrowthRate: 0.014,
+    populationSource: 'Census of India 2011 (Greater Mumbai MCGM limits) & MoHFW Projections'
   },
   {
     id: 'chennai',
@@ -106,7 +115,10 @@ export const CITIES: City[] = [
     climateContext: 'Tropical wet and dry (Aw). High saline intrusion along coast, severe summer heat index, low permeable recharge zones.',
     areaCount: 7,
     primaryRisks: ['water_stress', 'flood_exposure', 'extreme_heat'],
-    svgViewBox: '0 0 600 500'
+    svgViewBox: '0 0 600 500',
+    baselinePopulation2011: 7088000,
+    annualGrowthRate: 0.018,
+    populationSource: 'Census of India 2011 (Greater Chennai Corporation expanded limits)'
   },
   {
     id: 'hyderabad',
@@ -120,7 +132,10 @@ export const CITIES: City[] = [
     climateContext: 'Tropical wet and dry (Aw). Groundwater depletion in western IT zones; intense flash flooding due to altered natural drainage contours.',
     areaCount: 7,
     primaryRisks: ['water_stress', 'extreme_heat', 'air_pollution'],
-    svgViewBox: '0 0 600 500'
+    svgViewBox: '0 0 600 500',
+    baselinePopulation2011: 6731790,
+    annualGrowthRate: 0.024,
+    populationSource: 'Census of India 2011 (GHMC municipal boundary)'
   }
 ];
 

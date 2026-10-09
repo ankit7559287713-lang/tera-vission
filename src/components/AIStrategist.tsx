@@ -62,11 +62,11 @@ export const AIStrategist: React.FC<AIStrategistProps> = ({ simulation }) => {
 
   if (!simulation) {
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-400">
-        <Brain className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-        <h3 className="text-base font-semibold text-slate-200 mb-1">AI Strategist Ready</h3>
-        <p className="text-xs text-slate-500 max-w-md mx-auto">
-          Please run a simulation in the Simulation Lab to provide context for the AI City Strategist.
+      <div className="bg-white border border-[#DDE4DA] rounded-xl p-8 text-center text-[#66736A] shadow-xs">
+        <Brain className="w-12 h-12 text-[#477F78] mx-auto mb-3" />
+        <h3 className="text-base font-semibold text-[#183D30] mb-1">No Simulation Active</h3>
+        <p className="text-xs text-[#66736A] max-w-md mx-auto">
+          Run a simulation in the lab first so the strategist can evaluate specific risk outcomes.
         </p>
       </div>
     );
@@ -74,169 +74,174 @@ export const AIStrategist: React.FC<AIStrategistProps> = ({ simulation }) => {
 
   return (
     <div className="space-y-6">
-      {/* Strategist Header Banner */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 sm:p-6 shadow-lg">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+      {/* Strategist Banner */}
+      <div className="bg-white border border-[#DDE4DA] rounded-xl p-5 sm:p-6 shadow-xs">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-mono font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded flex items-center gap-1">
+              <span className="text-xs font-mono font-semibold text-[#245B43] bg-[#E7EEE5] border border-[#DDE4DA] px-2 py-0.5 rounded flex items-center gap-1">
                 <Brain className="w-3.5 h-3.5" />
-                Strategic Climate Intelligence
+                Adaptive Climate Intelligence
               </span>
-              <span className="text-xs text-slate-400">
-                Context: {simulation.cityName} ({simulation.targetYear})
+              <span className="text-xs text-[#66736A]">
+                {simulation.cityName} · Horizon {simulation.targetYear}
               </span>
             </div>
-            <h2 className="text-lg sm:text-xl font-bold text-white">
-              AI City Strategist Briefing
+            <h2 className="text-lg sm:text-xl font-bold text-[#183D30]">
+              Strategic Climate Decision Briefing
             </h2>
           </div>
 
-          {briefing && (
-            <div className="text-right">
-              <span className="text-[11px] font-mono text-cyan-300 bg-cyan-950/60 border border-cyan-800/60 px-2.5 py-1 rounded inline-block">
-                {briefing.sourceAttribution}
+          {/* Engine Mode Callout: AI vs Deterministic Rule-Based */}
+          <div className="flex items-center gap-2 bg-[#F6F7F1] border border-[#DDE4DA] px-3 py-1.5 rounded-lg text-xs">
+            <Sparkles className="w-4 h-4 text-[#245B43]" />
+            <div className="text-[11px]">
+              <span className="text-[#66736A] block">Engine Mode:</span>
+              <span className="font-semibold text-[#183D30]">
+                {briefing?.sourceAttribution.includes('Gemini')
+                  ? 'Gemini 2.5 Flash Grounded'
+                  : 'Deterministic Rule-Based Intelligence'}
               </span>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Executive Summary */}
-        {loading ? (
-          <div className="py-8 flex flex-col items-center justify-center text-slate-400 text-xs">
-            <div className="w-6 h-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin mb-2" />
-            <span>Synthesizing multi-system climate scenario outputs...</span>
+        {briefing ? (
+          <div className="bg-[#F6F7F1] border border-[#DDE4DA] rounded-xl p-4 sm:p-5 space-y-3">
+            <h3 className="text-xs font-bold text-[#183D30] uppercase tracking-wide flex items-center gap-2">
+              <Activity className="w-4 h-4 text-[#245B43]" />
+              Executive Policy Synthesis
+            </h3>
+            <p className="text-xs sm:text-sm text-[#26332C] leading-relaxed whitespace-pre-line">
+              {briefing.executiveSummary}
+            </p>
           </div>
-        ) : briefing ? (
-          <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-xs text-slate-200 leading-relaxed font-sans">
-            <p className="text-sm font-medium text-slate-100">{briefing.executiveSummary}</p>
+        ) : (
+          <div className="h-28 flex items-center justify-center text-xs text-[#66736A]">
+            <div className="w-4 h-4 border-2 border-[#245B43] border-t-transparent rounded-full animate-spin mr-2" />
+            Synthesizing strategic recommendations...
           </div>
-        ) : null}
+        )}
       </div>
 
-      {/* 3-Phase Action Plan */}
       {briefing && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {briefing.recommendedActionPlan.map((plan, idx) => (
-            <div
-              key={idx}
-              className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between shadow-sm"
-            >
-              <div>
-                <div className="flex items-center justify-between text-xs mb-2">
-                  <span className="font-bold text-emerald-400 font-mono">
-                    Phase {idx + 1}
-                  </span>
-                  <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-slate-500" />
-                    {plan.timeframe}
-                  </span>
-                </div>
-                <h4 className="text-xs font-bold text-slate-100 mb-2">{plan.phase}</h4>
+        <>
+          {/* Key Vulnerabilities & Phased Action Plan */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Phased Action Plan (7 cols) */}
+            <div className="lg:col-span-7 bg-white border border-[#DDE4DA] rounded-xl p-5 space-y-4 shadow-xs">
+              <h3 className="text-sm font-bold text-[#183D30] uppercase tracking-wide flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#245B43]" />
+                Phased Implementation Roadmap
+              </h3>
 
-                <ul className="space-y-1.5 text-[11px] text-slate-300 mb-3">
-                  {plan.actions.map((act, i) => (
-                    <li key={i} className="flex items-start gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                      <span>{act}</span>
+              <div className="space-y-3">
+                {briefing.recommendedActionPlan.map((phase, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-[#F6F7F1] border border-[#DDE4DA] rounded-xl p-4 space-y-2 hover:border-[#477F78] transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#183D30]">
+                        Phase {idx + 1}: {phase.phase}
+                      </span>
+                      <span className="text-[10px] font-mono font-medium text-[#245B43] bg-[#E7EEE5] px-2 py-0.5 rounded">
+                        {phase.timeframe}
+                      </span>
+                    </div>
+
+                    <ul className="text-xs text-[#26332C] space-y-1 list-disc list-inside">
+                      {phase.actions.map((act, aIdx) => (
+                        <li key={aIdx} className="leading-relaxed">
+                          {act}
+                        </li>
+                      ))}
+                    </ul>
+
+                    <div className="pt-2 border-t border-[#DDE4DA] text-[11px] text-[#66736A]">
+                      <strong className="text-[#183D30]">Expected Milestone:</strong> {phase.expectedOutcome}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Vulnerabilities & Tradeoffs (5 cols) */}
+            <div className="lg:col-span-5 space-y-4">
+              {/* Critical Vulnerabilities */}
+              <div className="bg-white border border-[#DDE4DA] rounded-xl p-5 space-y-3 shadow-xs">
+                <h3 className="text-sm font-bold text-[#183D30] uppercase tracking-wide flex items-center gap-2">
+                  <AlertOctagon className="w-4 h-4 text-rose-600" />
+                  Immediate High-Risk Bottlenecks
+                </h3>
+                <ul className="space-y-2">
+                  {briefing.keyVulnerabilities.map((vuln, vIdx) => (
+                    <li
+                      key={vIdx}
+                      className="text-xs text-[#26332C] bg-[#F6F7F1] p-2.5 rounded-lg border border-[#DDE4DA] flex items-start gap-2"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 flex-shrink-0" />
+                      <span>{vuln}</span>
                     </li>
                   ))}
                 </ul>
               </div>
 
-              <div className="pt-2 border-t border-slate-800 text-[10px] text-slate-400">
-                <strong className="text-slate-300">Expected Yield: </strong>
-                {plan.expectedOutcome}
+              {/* Trade-offs & Governance Gaps */}
+              <div className="bg-white border border-[#DDE4DA] rounded-xl p-5 space-y-3 shadow-xs">
+                <h3 className="text-sm font-bold text-[#183D30] uppercase tracking-wide flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-[#245B43]" />
+                  Trade-Offs &amp; Evidence Gaps
+                </h3>
+                <div className="space-y-2 text-xs">
+                  {briefing.criticalTradeoffs.map((to, tIdx) => (
+                    <div
+                      key={tIdx}
+                      className="bg-[#E7EEE5]/70 p-2.5 rounded-lg border border-[#DDE4DA] text-[#26332C]"
+                    >
+                      <strong>Capital Trade-Off:</strong> {to}
+                    </div>
+                  ))}
+                  {briefing.monitoringGaps.map((gap, gIdx) => (
+                    <div
+                      key={gIdx}
+                      className="bg-[#F6F7F1] p-2.5 rounded-lg border border-[#DDE4DA] text-[#66736A] text-[11px]"
+                    >
+                      <strong>Data Monitoring Gap:</strong> {gap}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* Critical Trade-offs & Monitoring Gaps */}
-      {briefing && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Critical Trade-offs */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
-            <h3 className="text-xs font-bold text-amber-400 flex items-center gap-1.5 mb-2.5">
-              <AlertOctagon className="w-4 h-4 text-amber-400" />
-              Critical Trade-offs &amp; Systemic Risks
-            </h3>
-            <ul className="space-y-2 text-xs text-slate-300">
-              {briefing.criticalTradeoffs.map((item, idx) => (
-                <li key={idx} className="flex items-start gap-2 bg-slate-950/40 p-2 rounded-lg border border-slate-800/60">
-                  <span className="text-amber-500 font-bold">•</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
           </div>
 
-          {/* Monitoring Gaps & Missing Evidence */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
-            <h3 className="text-xs font-bold text-cyan-400 flex items-center gap-1.5 mb-2.5">
-              <Activity className="w-4 h-4 text-cyan-400" />
-              Monitoring Gaps &amp; Data Uncertainties
+          {/* Interactive Advisory Prompt Input */}
+          <div className="bg-white border border-[#DDE4DA] rounded-xl p-5 shadow-xs">
+            <h3 className="text-xs font-bold text-[#183D30] uppercase tracking-wide mb-2 flex items-center gap-2">
+              <HelpCircle className="w-4 h-4 text-[#245B43]" />
+              Inquire Deeper on City Resilience Scenarios
             </h3>
-            <ul className="space-y-2 text-xs text-slate-300">
-              {briefing.monitoringGaps.map((item, idx) => (
-                <li key={idx} className="flex items-start gap-2 bg-slate-950/40 p-2 rounded-lg border border-slate-800/60">
-                  <span className="text-cyan-500 font-bold">•</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
+            <form onSubmit={handleAsk} className="flex gap-2">
+              <input
+                type="text"
+                value={userQuery}
+                onChange={(e) => setUserQuery(e.target.value)}
+                placeholder="Ask specific questions: 'How does groundwater overdraft impact peripheral tech corridors by 2035?'"
+                className="flex-1 bg-[#F6F7F1] border border-[#DDE4DA] focus:border-[#245B43] rounded-lg px-3.5 py-2 text-xs text-[#26332C] focus:outline-none transition-colors"
+              />
+              <button
+                type="submit"
+                disabled={loading || !userQuery.trim()}
+                className="px-4 py-2 bg-[#245B43] hover:bg-[#183D30] disabled:bg-[#DDE4DA] disabled:text-[#66736A] text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Ask</span>
+              </button>
+            </form>
           </div>
-        </div>
+        </>
       )}
-
-      {/* Interactive Query Box: "Ask the Strategist" */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 shadow-lg">
-        <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-2">
-          <HelpCircle className="w-4 h-4 text-emerald-400" />
-          Interactive Query: Grounded Climate Advice
-        </h3>
-        <p className="text-xs text-slate-400 mb-3">
-          Ask specific strategic questions about the active simulation, trade-offs, or priority ward allocations.
-        </p>
-
-        {/* Quick query chips */}
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {[
-            'Which wards should receive drainage investments first?',
-            'What happens if we double green cover but ignore water stress?',
-            'What are the key trade-offs between cool roofs and tree planting?',
-            'How can we address the data gaps in groundwater monitoring?'
-          ].map((prompt, i) => (
-            <button
-              key={i}
-              onClick={() => fetchBriefing(prompt)}
-              className="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-md border border-slate-700/80 transition-colors text-left"
-            >
-              {prompt}
-            </button>
-          ))}
-        </div>
-
-        {/* Input Bar */}
-        <form onSubmit={handleAsk} className="flex gap-2">
-          <input
-            type="text"
-            value={userQuery}
-            onChange={(e) => setUserQuery(e.target.value)}
-            placeholder="Ask the AI City Strategist about this simulation..."
-            className="flex-1 bg-slate-950 border border-slate-800 focus:border-emerald-500 text-slate-100 text-xs px-3.5 py-2.5 rounded-lg focus:outline-none"
-          />
-          <button
-            type="submit"
-            disabled={loading || !userQuery.trim()}
-            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Send className="w-3.5 h-3.5" />
-            <span>Ask</span>
-          </button>
-        </form>
-      </div>
     </div>
   );
 };

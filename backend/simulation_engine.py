@@ -115,5 +115,5 @@ def run_python_simulation(req: SimulationRequest) -> Dict[str, Any]:
             "gain": int_res - base_res
         },
         "areaResults": area_results,
-        "modelVersion": "EARTHSIM-v2.4-python-deterministic"
+        "modelVersion": "TETRA-VISION-v3.0-python-deterministic"
     }
