@@ -120,6 +120,9 @@ export default function App() {
         })
       ]);
 
+      if (simResult.targetYear !== year || simResult.populationProjection?.targetYear !== year) {
+        throw new Error(`Simulation returned year ${simResult.targetYear} for requested year ${year}. Please retry.`);
+      }
       if (currentReqId === activeRequestRef.current) {
         setAreas(areaData.areas);
         setSimulation(simResult);
@@ -166,6 +169,9 @@ export default function App() {
         targetYear,
         interventions: parameters
       });
+      if (result.targetYear !== targetYear || result.populationProjection?.targetYear !== targetYear) {
+        throw new Error(`Simulation returned year ${result.targetYear} for requested year ${targetYear}. Please retry.`);
+      }
       if (currentReqId === activeRequestRef.current) {
         setSimulation(result);
       }
