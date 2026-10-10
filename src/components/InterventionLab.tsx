@@ -160,79 +160,93 @@ export const InterventionLab: React.FC<InterventionLabProps> = ({
       </div>
 
       {/* Ranked Intervention Portfolio */}
-      {result && (
+            {loading && !result ? (
+        <div className="bg-white border border-[#DDE4DA] rounded-xl p-12 text-center space-y-3">
+          <div className="w-8 h-8 border-3 border-[#245B43] border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="text-sm font-bold text-[#183D30]">Evaluating Budget Optimization Model</div>
+          <div className="text-xs text-[#66736A]">Calculating marginal cost-effectiveness ratios and Pareto efficiency curve for {cityName}...</div>
+        </div>
+      ) : (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-[#183D30] uppercase tracking-wide flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#245B43]" />
-              Ranked Cost-Effective Portfolio ({result.rankedInterventions.length} Options Evaluated)
+              Ranked Cost-Effective Portfolio ({(result?.rankedInterventions || []).length} Options Evaluated)
             </h3>
 
-            <button
-              onClick={handleApply}
-              disabled={applied || loading}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer ${
-                applied
-                  ? 'bg-emerald-700 text-white'
-                  : 'bg-[#245B43] hover:bg-[#183D30] text-white'
-              }`}
-            >
-              {applied ? (
-                <>
-                  <CheckCircle className="w-4 h-4" />
-                  <span>Applied to Active Simulation</span>
-                </>
-              ) : (
-                <>
-                  <span>Apply Portfolio to Simulation</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
+            {result && (
+              <button
+                onClick={handleApply}
+                disabled={applied || loading}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer ${
+                  applied
+                    ? 'bg-emerald-700 text-white'
+                    : 'bg-[#245B43] hover:bg-[#183D30] text-white'
+                }`}
+              >
+                {applied ? (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Applied to Active Simulation</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Apply Portfolio to Simulation</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {result.rankedInterventions.map((item) => (
-              <div
-                key={item.interventionId}
-                className="bg-white border border-[#DDE4DA] rounded-xl p-4 space-y-3 hover:border-[#477F78] transition-all shadow-xs"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <span className="text-[10px] font-mono font-bold text-[#245B43] bg-[#E7EEE5] px-1.5 py-0.5 rounded">
-                      Rank #{item.rank} · Priority
-                    </span>
-                    <h4 className="text-sm font-bold text-[#183D30] mt-1">{item.name}</h4>
+          {(result?.rankedInterventions || []).length === 0 ? (
+            <div className="bg-white border border-[#DDE4DA] rounded-xl p-8 text-center text-xs text-[#66736A]">
+              {loading ? 'Computing optimal intervention ranking...' : 'No intervention rankings available for this budget configuration. Try adjusting the budget or priority.'}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {(result?.rankedInterventions || []).map((item) => (
+                <div
+                  key={item.interventionId}
+                  className="bg-white border border-[#DDE4DA] rounded-xl p-4 space-y-3 hover:border-[#477F78] transition-all shadow-xs"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-[#245B43] bg-[#E7EEE5] px-1.5 py-0.5 rounded">
+                        Rank #{item.rank || 1} · Priority
+                      </span>
+                      <h4 className="text-sm font-bold text-[#183D30] mt-1">{item.name}</h4>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10px] text-[#66736A]">Recommended</div>
+                      <div className="text-sm font-bold font-mono text-[#245B43]">
+                        {item.recommendedValue ?? 0}%
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-[10px] text-[#66736A]">Recommended</div>
-                    <div className="text-sm font-bold font-mono text-[#245B43]">
-                      {item.recommendedValue}%
+
+                  <p className="text-xs text-[#66736A] leading-relaxed">
+                    {item.justification}
+                  </p>
+
+                  <div className="pt-2 border-t border-[#DDE4DA] grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-[10px] text-[#66736A] block">Capex Outlay:</span>
+                      <span className="font-mono font-bold text-[#183D30]">
+                        ${item.estimatedCostMillions ?? 0}M
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] text-[#66736A] block">Impact / $1M:</span>
+                      <span className="font-mono font-bold text-emerald-800">
+                        {item.costEffectivenessRatio ?? 0} pts/$M
+                      </span>
                     </div>
                   </div>
                 </div>
-
-                <p className="text-xs text-[#66736A] leading-relaxed">
-                  {item.justification}
-                </p>
-
-                <div className="pt-2 border-t border-[#DDE4DA] grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <span className="text-[10px] text-[#66736A] block">Capex Outlay:</span>
-                    <span className="font-mono font-bold text-[#183D30]">
-                      ${item.estimatedCostMillions}M
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[10px] text-[#66736A] block">Impact / $1M:</span>
-                    <span className="font-mono font-bold text-emerald-800">
-                      {item.costEffectivenessRatio} pts/$M
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Pareto Frontier Insights */}
           {paretoFrontier && (
@@ -246,7 +260,7 @@ export const InterventionLab: React.FC<InterventionLabProps> = ({
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                {paretoFrontier.frontierSteps.map((step: any) => (
+                {(paretoFrontier.frontierPoints || paretoFrontier.frontierSteps || []).map((step: any) => (
                   <div
                     key={step.budgetMillions}
                     className="bg-[#F6F7F1] border border-[#DDE4DA] rounded-lg p-3"
@@ -256,7 +270,7 @@ export const InterventionLab: React.FC<InterventionLabProps> = ({
                       +{step.projectedResilienceGain} pts
                     </div>
                     <div className="text-[10px] text-[#245B43] mt-1 font-medium">
-                      Efficiency: {step.marginalEfficiency}
+                      Efficiency: {step.costEffectiveness ?? step.marginalEfficiency ?? 0}
                     </div>
                   </div>
                 ))}
