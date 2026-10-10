@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   EnvironmentalLayerId,
   InterventionOptimizationResult,
@@ -31,12 +31,16 @@ export const InterventionLab: React.FC<InterventionLabProps> = ({
   const [budget, setBudget] = useState<number>(35);
   const [priority, setPriority] = useState<'balanced' | EnvironmentalLayerId>('balanced');
   const [result, setResult] = useState<InterventionOptimizationResult | null>(null);
-  const [paretoFrontier, setParetoFrontier] = useState<any>(null);
+  const [paretoFrontier, setParetoFrontier] = useState<{ frontierPoints: Array<{ budgetMillions: number; projectedResilienceGain: number; costEffectiveness: number }> } | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
   const [applied, setApplied] = useState<boolean>(false);
 
   const runOptimization = async (b: number, p: 'balanced' | EnvironmentalLayerId) => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
+    setErrorMessage(null);
     setApplied(false);
     try {
       const [optData, frontierData] = await Promise.all([
@@ -47,17 +51,23 @@ export const InterventionLab: React.FC<InterventionLabProps> = ({
         }),
         api.getParetoFrontier(cityId, p).catch(() => null)
       ]);
+      if (requestId !== requestIdRef.current) return;
       setResult(optData);
-      if (frontierData) setParetoFrontier(frontierData);
+      setParetoFrontier(frontierData && Array.isArray(frontierData.frontierPoints) ? frontierData : null);
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       console.error('Optimization error:', err);
+      setErrorMessage(err instanceof Error ? err.message : 'Could not calculate the intervention budget. Please retry.');
+      setResult(null);
+      setParetoFrontier(null);
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
   };
 
   useEffect(() => {
-    runOptimization(budget, priority);
+    void runOptimization(budget, priority);
+    return () => { requestIdRef.current += 1; };
   }, [cityId, budget, priority]);
 
   const handleApply = () => {
@@ -159,6 +169,18 @@ export const InterventionLab: React.FC<InterventionLabProps> = ({
         </div>
       </div>
 
+      {loading && (
+        <div role="status" className="rounded-xl border border-[#DDE4DA] bg-white p-4 text-sm text-[#66736A]">
+          Calculating the best portfolio for this budget…
+        </div>
+      )}
+      {errorMessage && (
+        <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 flex items-center justify-between gap-3">
+          <span>{errorMessage}</span>
+          <button onClick={() => void runOptimization(budget, priority)} className="rounded-lg border border-rose-300 px-3 py-1.5 font-semibold hover:bg-rose-100">Retry</button>
+        </div>
+      )}
+
       {/* Ranked Intervention Portfolio */}
       {result && (
         <div className="space-y-4">
@@ -242,11 +264,11 @@ export const InterventionLab: React.FC<InterventionLabProps> = ({
                 Marginal Returns Curve (Pareto Capital Frontier)
               </h4>
               <p className="text-xs text-[#66736A] mb-4">
-                Demonstrates how overall city resilience scales as public investment expands from $10M to $100M:
+                Shows modeled resilience gains at different public investment levels. Values are scenario estimates, not guaranteed outcomes.
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                {paretoFrontier.frontierSteps.map((step: any) => (
+                {paretoFrontier.frontierPoints.map((step) => (
                   <div
                     key={step.budgetMillions}
                     className="bg-[#F6F7F1] border border-[#DDE4DA] rounded-lg p-3"
@@ -256,7 +278,7 @@ export const InterventionLab: React.FC<InterventionLabProps> = ({
                       +{step.projectedResilienceGain} pts
                     </div>
                     <div className="text-[10px] text-[#245B43] mt-1 font-medium">
-                      Efficiency: {step.marginalEfficiency}
+                      Efficiency: {step.costEffectiveness.toFixed(2)} pts/$M
                     </div>
                   </div>
                 ))}

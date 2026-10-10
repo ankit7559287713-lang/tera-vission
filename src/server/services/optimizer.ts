@@ -102,7 +102,11 @@ export interface OptimizeInterventionsInput {
 export function optimizeInterventionPortfolio(
   input: OptimizeInterventionsInput
 ): InterventionOptimizationResult {
-  const budget = Math.max(5, Math.min(200, input.budgetMillions || 25));
+  const requestedBudget = Number(input.budgetMillions);
+  if (!Number.isFinite(requestedBudget) || requestedBudget < 5 || requestedBudget > 200) {
+    throw new Error('Budget must be a finite number between $5M and $200M.');
+  }
+  const budget = Math.round(requestedBudget * 10) / 10;
   const priority = input.targetPriority || 'balanced';
 
   // Calculate effectiveness weights based on selected priority
@@ -168,15 +172,13 @@ export function optimizeInterventionPortfolio(
 
     // If it's high priority, allow taking whatever is left if budget permits
     const allocatedCost = Math.min(remainingBudget, maxAllocatable);
-    const recommendedValue = Math.min(
-      option.maxFeasibleValue,
-      Math.round(allocatedCost / option.implementationCostPerUnit)
-    );
-    const finalCost = Math.round(recommendedValue * option.implementationCostPerUnit * 10) / 10;
+    const affordableUnits = Math.floor((allocatedCost + 1e-9) / option.implementationCostPerUnit);
+    const recommendedValue = Math.min(option.maxFeasibleValue, affordableUnits);
+    const finalCost = Math.round(recommendedValue * option.implementationCostPerUnit * 100) / 100;
 
     item.recommendedValue = recommendedValue;
     item.estimatedCostMillions = finalCost;
-    remainingBudget = Math.max(0, Math.round((remainingBudget - finalCost) * 10) / 10);
+    remainingBudget = Math.max(0, Math.round((remainingBudget - finalCost) * 100) / 100);
 
     synthesizedScenario[item.interventionId] = recommendedValue;
 
@@ -184,7 +186,7 @@ export function optimizeInterventionPortfolio(
   });
 
   // Calculate projected composite resilience gain
-  const totalCost = Math.round((budget - remainingBudget) * 10) / 10;
+  const totalCost = Math.round((budget - remainingBudget) * 100) / 100;
   const projectedResilienceGain = Math.min(
     42,
     Math.round(

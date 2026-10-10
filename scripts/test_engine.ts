@@ -142,6 +142,16 @@ async function runTests() {
     sim2040.populationProjection.projectedPopulation > sim2030.populationProjection.projectedPopulation,
     'Criterion 4b: Population in 2040 is strictly greater than 2030 under positive growth rate'
   );
+  let everyYearPopulationIncreases = true;
+  let previousPopulation = 0;
+  for (let yr = 2025; yr <= 2040; yr++) {
+    const yearly = executeSimulation({ cityId: 'bengaluru', targetYear: yr as any, interventions: defaultInterventions });
+    if (yearly.targetYear !== yr || yearly.populationProjection.targetYear !== yr || yearly.populationProjection.projectedPopulation <= previousPopulation) {
+      everyYearPopulationIncreases = false;
+    }
+    previousPopulation = yearly.populationProjection.projectedPopulation;
+  }
+  assert(everyYearPopulationIncreases, 'Criterion 4c: Every year 2025–2040 returns its own year and a strictly increasing population projection');
 
   // Test 5: Population calculations use documented baseline and growth formula: P(t) = P(2011) * (1+r)^(t-2011)
   console.log('\nTest Group 5: Official Population Mathematics Verification');
@@ -290,6 +300,10 @@ async function runTests() {
   });
   assert(opt.totalCostMillions <= 30, 'Criterion 14a: Optimizer respects budget constraint');
   assert(opt.projectedResilienceGain > 0, 'Criterion 14b: Optimizer yields positive resilience gain');
+  assert(opt.remainingBudgetMillions >= 0 && opt.totalCostMillions <= opt.budgetMillions, 'Criterion 14c: Optimizer never overspends and keeps remaining budget nonnegative');
+  let invalidBudgetRejected = false;
+  try { optimizeInterventionPortfolio({ cityId: 'bengaluru', budgetMillions: Number.NaN, targetPriority: 'balanced' }); } catch { invalidBudgetRejected = true; }
+  assert(invalidBudgetRejected, 'Criterion 14d: Optimizer rejects non-finite budget input');
 
   // AI Strategist
   const briefing = generateDeterministicBriefing(sim2035);
