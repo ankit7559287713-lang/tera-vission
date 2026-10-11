@@ -1,5 +1,35 @@
 [
   {
+    "id": "sim_bengaluru_2030_mv3g4efd",
+    "cityId": "bengaluru",
+    "timestamp": "2026-10-11T06:32:20.233Z",
+    "resilienceGain": 18
+  },
+  {
+    "id": "sim_bengaluru_2027_mv3ez7p9",
+    "cityId": "bengaluru",
+    "timestamp": "2026-10-11T06:00:18.621Z",
+    "resilienceGain": 27
+  },
+  {
+    "id": "sim_bengaluru_2027_mv3ez743",
+    "cityId": "bengaluru",
+    "timestamp": "2026-10-11T06:00:17.859Z",
+    "resilienceGain": 27
+  },
+  {
+    "id": "sim_bengaluru_2027_mv3ez5va",
+    "cityId": "bengaluru",
+    "timestamp": "2026-10-11T06:00:16.246Z",
+    "resilienceGain": 27
+  },
+  {
+    "id": "sim_bengaluru_2030_mv3ew2s9",
+    "cityId": "bengaluru",
+    "timestamp": "2026-10-11T05:57:52.281Z",
+    "resilienceGain": 27
+  },
+  {
     "id": "sim_bengaluru_2035_mv13ybkk",
     "cityId": "bengaluru",
     "timestamp": "2026-10-09T15:16:08.852Z",

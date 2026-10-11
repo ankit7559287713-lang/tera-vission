@@ -18,7 +18,11 @@ import {
   AIStrategistBriefing
 } from '../types/earthsim.ts';
 
-const BASE_URL = import.meta.env.VITE_API_URL || '/api';
+// Normalize and sanitize API Base URL so invalid env strings (e.g. "temp") or missing values never break calls
+const rawEnvUrl = typeof import.meta.env.VITE_API_URL === "string" ? import.meta.env.VITE_API_URL.trim() : "";
+const BASE_URL = (rawEnvUrl && rawEnvUrl.startsWith("/") && rawEnvUrl !== "/index.html") || (rawEnvUrl && rawEnvUrl.startsWith("http"))
+  ? rawEnvUrl.replace(/\/+$/, "")
+  : "/api";
 
 class ApiError extends Error {
   status: number;
@@ -49,17 +53,32 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
     clearTimeout(timeoutId);
 
+        const contentType = response.headers.get("content-type") || "";
+
     if (!response.ok) {
       let errorBody: any = null;
-      try {
-        errorBody = await response.json();
-      } catch {
-        errorBody = { message: response.statusText };
+      if (contentType.includes("application/json")) {
+        try {
+          errorBody = await response.json();
+        } catch {
+          errorBody = { message: response.statusText };
+        }
+      } else {
+        const text = await response.text();
+        errorBody = { message: `HTTP ${response.status}: Server returned non-JSON response (${contentType || "unknown content type"})`, bodyPreview: text.slice(0, 150) };
       }
       throw new ApiError(
         errorBody?.message || `HTTP error ${response.status}`,
         response.status,
         errorBody
+      );
+    }
+
+    if (!contentType.includes("application/json")) {
+      const text = await response.text();
+      throw new ApiError(
+        `Expected JSON from ${endpoint} but received ${contentType || "non-JSON"}. Body snippet: ${text.slice(0, 80)}`,
+        response.status
       );
     }
 

@@ -601,7 +601,16 @@ apiRouter.get('/optimizer/pareto-frontier', (req: Request, res: Response) => {
     priority,
     frontierPoints: curve,
     diminishingReturnsThresholdMillions: 75,
-    recommendation: 'Optimal capital allocation efficiency peaks around $35M–$50M before marginal returns begin tapering.'
+    recommendation: 'Optimal capital allocation efficiency peaks around ₹35 Cr–₹50 Cr before marginal returns begin tapering.'
   });
 });
 
+
+
+// 404 handler for API routes so unhandled endpoints never fall through to HTML
+apiRouter.use((req: Request, res: Response) => {
+  res.status(404).json({
+    error: "NotFound",
+    message: "API endpoint " + req.method + " " + (req.originalUrl || req.url) + " does not exist."
+  });
+});
