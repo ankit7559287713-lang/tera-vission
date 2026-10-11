@@ -180,7 +180,7 @@ export function optimizeInterventionPortfolio(
 
     synthesizedScenario[item.interventionId] = recommendedValue;
 
-    item.justification = `Provides ${item.costEffectivenessRatio}x impact-to-cost return. Recommended deployment at ${recommendedValue}${option.unitLabel.includes('%') ? '%' : ''} for $${finalCost}M.`;
+    item.justification = `Provides ${item.costEffectivenessRatio}x impact-to-cost return. Recommended deployment at ${recommendedValue}${option.unitLabel.includes('%') ? '%' : ''} for ₹${finalCost} Cr.`;
   });
 
   // Calculate projected composite resilience gain
@@ -208,7 +208,7 @@ export function optimizeInterventionPortfolio(
     projectedResilienceGain,
     optimizationRationale:
       priority === 'balanced'
-        ? `Optimized for maximum multi-system co-benefits across heat, flood, water, and air under the $${budget}M cap.`
+        ? `Optimized for maximum multi-system co-benefits across heat, flood, water, and air under the ₹${budget} Cr cap.`
         : `Targeted knapsack allocation heavily weighting ${priority.replace('_', ' ')} mitigation return on investment.`,
     limitations: [
       'Unit capital costs represent median municipal pilot tender benchmarks in Indian metro regions (2024-2025).',

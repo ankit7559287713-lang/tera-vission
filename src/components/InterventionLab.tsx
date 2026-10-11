@@ -6,7 +6,7 @@ import {
 } from '../types/earthsim.ts';
 import { api } from '../api/client.ts';
 import {
-  DollarSign,
+  IndianRupee,
   TrendingUp,
   Cpu,
   CheckCircle,
@@ -78,7 +78,7 @@ export const InterventionLab: React.FC<InterventionLabProps> = ({
               Budget-Constrained Intervention Optimizer
             </h2>
             <p className="text-xs text-[#66736A] mt-0.5">
-              Evaluates marginal cost-effectiveness ratios (Impact per $1M / ₹8.3 Cr) using an explainable knapsack ranking algorithm for {cityName}.
+              Evaluates marginal cost-effectiveness ratios (Impact per ₹10 Cr) using an explainable knapsack ranking algorithm for {cityName}.
             </p>
           </div>
 
@@ -93,7 +93,7 @@ export const InterventionLab: React.FC<InterventionLabProps> = ({
               <div className="border-l border-[#DDE4DA] pl-3 text-right">
                 <div className="text-[10px] text-[#66736A] uppercase font-mono">Budget Allocated</div>
                 <div className="text-lg font-mono font-bold text-[#183D30]">
-                  ${result.totalCostMillions}M <span className="text-xs text-[#66736A] font-normal">/ ${budget}M</span>
+                  ₹{result.totalCostMillions} Cr <span className="text-xs text-[#66736A] font-normal">/ ₹{budget} Cr</span>
                 </div>
               </div>
             </div>
@@ -106,10 +106,10 @@ export const InterventionLab: React.FC<InterventionLabProps> = ({
           <div className="space-y-2">
             <div className="flex justify-between items-center text-xs">
               <label className="font-bold text-[#183D30] flex items-center gap-1.5">
-                <DollarSign className="w-4 h-4 text-[#245B43]" /> Municipal Capital Budget Ceiling:
+                <IndianRupee className="w-4 h-4 text-[#245B43]" /> Municipal Capital Budget Ceiling:
               </label>
               <span className="font-mono text-base font-bold text-[#245B43]">
-                ${budget} Million USD
+                ₹{budget} Crores
               </span>
             </div>
             <input
@@ -122,9 +122,9 @@ export const InterventionLab: React.FC<InterventionLabProps> = ({
               className="w-full h-2 bg-[#DDE4DA] rounded-lg appearance-none cursor-pointer accent-[#245B43]"
             />
             <div className="flex justify-between text-[10px] text-[#66736A]">
-              <span>$5M (Pilot Scale)</span>
-              <span>$50M (Major Municipal Scheme)</span>
-              <span>$100M (Comprehensive Transformation)</span>
+              <span>₹5 Cr (Pilot Scale)</span>
+              <span>₹50 Cr (Major Municipal Scheme)</span>
+              <span>₹100 Cr (Comprehensive Transformation)</span>
             </div>
           </div>
 
@@ -233,13 +233,13 @@ export const InterventionLab: React.FC<InterventionLabProps> = ({
                     <div>
                       <span className="text-[10px] text-[#66736A] block">Capex Outlay:</span>
                       <span className="font-mono font-bold text-[#183D30]">
-                        ${item.estimatedCostMillions ?? 0}M
+                        ₹{item.estimatedCostMillions ?? 0} Cr
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="text-[10px] text-[#66736A] block">Impact / $1M:</span>
+                      <span className="text-[10px] text-[#66736A] block">Impact / ₹1 Cr:</span>
                       <span className="font-mono font-bold text-emerald-800">
-                        {item.costEffectivenessRatio ?? 0} pts/$M
+                        {item.costEffectivenessRatio ?? 0} pts/₹Cr
                       </span>
                     </div>
                   </div>
@@ -256,7 +256,7 @@ export const InterventionLab: React.FC<InterventionLabProps> = ({
                 Marginal Returns Curve (Pareto Capital Frontier)
               </h4>
               <p className="text-xs text-[#66736A] mb-4">
-                Demonstrates how overall city resilience scales as public investment expands from $10M to $100M:
+                Demonstrates how overall city resilience scales as public investment expands from ₹10 Cr to ₹100 Cr:
               </p>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
@@ -265,7 +265,7 @@ export const InterventionLab: React.FC<InterventionLabProps> = ({
                     key={step.budgetMillions}
                     className="bg-[#F6F7F1] border border-[#DDE4DA] rounded-lg p-3"
                   >
-                    <div className="text-xs text-[#66736A]">${step.budgetMillions}M Budget</div>
+                    <div className="text-xs text-[#66736A]">₹{step.budgetMillions} Cr Budget</div>
                     <div className="text-base font-mono font-bold text-[#183D30] mt-0.5">
                       +{step.projectedResilienceGain} pts
                     </div>
